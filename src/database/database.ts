@@ -15,4 +15,4 @@ const Content = new Schema({
     content: {type: String, required: true}
 })
 
-const ContentModel = mongoose.model('content', Content);
+export const ContentModel = mongoose.model('content', Content);
