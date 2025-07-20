@@ -12,7 +12,8 @@ export async function ConnectedToDB(){
 }
 
 const Content = new Schema({
-    content: {type: String, required: true}
+    content: {type: String, required: true},
+    code: {type: String}
 })
 
 export const ContentModel = mongoose.model('content', Content);

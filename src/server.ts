@@ -1,11 +1,15 @@
 import express from "express";
 import { ConnectedToDB } from "./database/database";
+import senderRouter from "./routes/sender";
+import receiverRouter from "./routes/receiver";
 const app = express();
 
 // for parsing user data
 app.use(express.json());
 
-// route
+// routes
+app.use("/api/v1/user", senderRouter);
+app.use("/api/v1/user", receiverRouter);
 
 
 const PORT = process.env.PORT || 8080;
