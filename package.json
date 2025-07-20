@@ -1,0 +1,25 @@
+{
+  "name": "online-clipboard",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "start": "tsc -b && ./dist/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.16.4"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^6.1.1",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.15",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2"
+  }
+}
