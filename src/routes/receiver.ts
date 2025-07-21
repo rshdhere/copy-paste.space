@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import { OTPSchema } from "../types/types";
 import { ContentModel } from "../database/database";
 
@@ -12,7 +12,7 @@ receiverRouter.get("/receive", async (req, res) => {
 
         if(!parsedData.success){
             res.status(403).json({
-                message: "Validation Error",
+                message: "Validation Error || 'userCode' keyword went missing",
                 errors: parsedData.error.format()
             })
             return;
@@ -24,14 +24,14 @@ receiverRouter.get("/receive", async (req, res) => {
             code: userCode
         });
 
-        if(data){
+        if(data && data.length > 0){
             res.status(200).json({
                 message: "here's your data",
                 data
             })
         } else {
             res.status(400).json({
-                message: "Invalid code"
+                message: "your code doesnt match with any content, or session expired"
             })
         }
     } catch(error: any){
