@@ -12,7 +12,7 @@ senderRouter.post("/send", async (req, res) => {
 
         if(!parsedData.success){
             res.status(403).json({
-                message: "Validation Error",
+                message: "Validation Error || 'content' keyword went missing",
                 errors: parsedData.error.format()
             })
             return;
