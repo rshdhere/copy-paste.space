@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 export const ContentSchema = z.object({
-    content: z.string({message: "invalid input format or use only 'content' for POST request"})
+    content: z.string({message: "invalid input format or use only 'content' for POST request"}).regex(/^[A-Z0-9]+$/, {message: "user can only send numbers and alphabets"})
 });
 
 export const OTPSchema = z.object({
