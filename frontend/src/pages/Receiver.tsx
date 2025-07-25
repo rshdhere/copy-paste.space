@@ -43,7 +43,7 @@ export function Receiver(){
                     <input 
                         className="w-32 px-3 py-2 text-center border border-gray-300 rounded" 
                         type="text" 
-                        maxLength={6} 
+                        maxLength={4} 
                         ref={otpRef}
                         placeholder="otp here" />
                     <button className="px-4 py-2 bg-amber-100 cursor-pointer" onClick={OTPChecker}>confirm</button>
@@ -55,7 +55,7 @@ export function Receiver(){
                             className="w-full mt-2 p-2 border rounded bg-white text-black"
                             value={receivedContent}
                             readOnly
-                            rows={6}
+                            rows={4}
                         />
                     </div>
                 )}
