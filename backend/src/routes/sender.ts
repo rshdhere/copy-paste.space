@@ -18,7 +18,7 @@ senderRouter.post("/send", async (req, res) => {
             return;
         };
 
-        const code = random(6);
+        const code = random(4);
 
         const { content } = parsedData.data;
 
