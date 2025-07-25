@@ -8,7 +8,7 @@ receiverRouter.get("/receive", async (req, res) => {
     // validation for security
     try {
 
-        const parsedData = OTPSchema.safeParse(req.body);
+        const parsedData = OTPSchema.safeParse({ userCode: req.query.userCode});
 
         if(!parsedData.success){
             res.status(403).json({
