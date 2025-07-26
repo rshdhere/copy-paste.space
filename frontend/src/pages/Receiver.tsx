@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Button } from "../components/Button";
 import { ProgressRing } from "../components/ProgressRing";
+import { Feature } from "../assets/icons/Feature";
 const backend_url = import.meta.env.VITE_BACKEND_URI;
 
 export function Receiver(){
@@ -57,11 +58,12 @@ export function Receiver(){
             <div className="flex flex-col items-center w-[36rem] mt-4 relative z-10">
                 {/* Content container */}
                 <div className="flex flex-col w-full bg-[#2A2A2A] rounded-full shadow-lg overflow-hidden relative border border-neutral-600">
+                    
                     {/* OTP input and Button in same capsule */}
                     <div className="flex items-center justify-center">
                         <div className="flex items-center space-x-3 w-full relative">
                             <input 
-                                className={`flex-1 px-4 py-3 text-center border-transparent rounded-l-lg bg-transparent transition-all duration-200 focus:outline-none placeholder:text-center text-lg font-satoshi tracking-widest ${
+                                className={`flex-1 px-4 py-3 text-center border-transparent rounded-l-lg bg-transparent transition-all duration-200 focus:outline-none placeholder:text-center text-lg font-satoshi placeholder:font-satoshi ${
                                     errorMessage 
                                         ? 'text-red-400 placeholder-red-400' 
                                         : 'text-white placeholder-gray-400'
@@ -69,7 +71,7 @@ export function Receiver(){
                                 type="text" 
                                 maxLength={4} 
                                 ref={otpRef}
-                                placeholder="Enter your OTP"
+                                placeholder="enter the verification-code / one-time-password"
                                 spellCheck={false}
                                 onChange={e => {
                                     setOtp(e.target.value);
@@ -97,6 +99,18 @@ export function Receiver(){
                     </div>
                 </div>
                 
+                {/* Hint section attached to OTP section */}
+                <div className="w-full flex justify-center -mt-1">
+                    <div className="flex items-center gap-2 bg-[#2A2A2A] border-l border-r border-b border-white/10 rounded-b-lg px-4 py-3 shadow-lg" style={{ width: 'calc(100% - 4rem)' }}>
+                        <div className="text-cyan-400/80">
+                            <Feature />
+                        </div>
+                        <span className="text-gray-400 text-sm leading-relaxed font-satoshi">
+                            <b>Files and Code sharing</b> with multi-language support will be in <b className="text-cyan-400"> V2</b>
+                        </span>
+                    </div>
+                </div>
+                
                 {/* Error message display */}
                 {errorMessage && (
                     <div className="w-full mt-4">
@@ -105,6 +119,8 @@ export function Receiver(){
                         </div>
                     </div>
                 )}
+                
+
                 
                 {/* Received content display - outside the capsule */}
                 {receivedContent && (
