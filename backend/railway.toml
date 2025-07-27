@@ -2,6 +2,9 @@
 builder = "nixpacks"
 command = "npm run build"
 
+[variables]
+NODE_VERSION = "18"
+
 [deploy]
 startCommand = "npm start"
 healthcheckPath = "/api/v1/user/health"

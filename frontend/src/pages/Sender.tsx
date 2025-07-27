@@ -12,9 +12,10 @@ export function Sender(){
     const [errorMessage, setErrorMessage] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    useEffect(() => {
-        console.log(content);
-    }, [content])
+    // useEffect(() => {
+    //     console.log(content);
+    // }, [content]) 
+    //  used only for debugging not for production
 
     // Auto-resize textarea based on content
     useEffect(() => {

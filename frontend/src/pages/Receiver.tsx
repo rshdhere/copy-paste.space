@@ -14,9 +14,10 @@ export function Receiver(){
     const [placeholder, setPlaceholder] = useState('');
     const otpRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        console.log(otp)
-    }, [otp])
+    // useEffect(() => {
+    //     console.log(otp)
+    // }, [otp])
+    //  used only for debugging not for production
 
     useEffect(() => {
         const updatePlaceholder = () => {
