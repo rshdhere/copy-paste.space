@@ -90,7 +90,7 @@ export function Sender(){
                                 errorMessage ? 'text-red-400 placeholder-red-400' : 'text-white placeholder-gray-400'
                             }`}
                             ref={textareaRef}
-                            placeholder={errorMessage || `Share anything... 
+                            placeholder={errorMessage || `Paste your message or code — we’ll generate an OTP to share it.
                                 
 public class Example {
     public static void main(String[] args) {
@@ -102,6 +102,12 @@ public class Example {
                             onChange={e => {
                                 setContent(e.target.value);
                                 if (errorMessage) setErrorMessage(""); // Clear error when user starts typing
+                            }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    SaveContent();
+                                }
                             }}
                             rows={1}
                         ></textarea>
@@ -127,27 +133,30 @@ public class Example {
                             {/* OTP Box */}
                             <div className="flex items-center space-x-2 bg-transparent rounded-lg px-2 py-1.5 border border-gray-400/30 cursor-pointer hover:bg-white/5 transition-colors">
                                 <span className="text-gray-400 text-sm font-mono">{code || "OTP"}</span>
-                                {code && (
-                                    <button 
-                                        onClick={() => {
+                                <button 
+                                    onClick={() => {
+                                        if (code) {
                                             navigator.clipboard.writeText(code);
                                             setCopied(true);
                                             setTimeout(() => setCopied(false), 2000);
-                                        }}
-                                        className="text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer p-1 rounded-lg hover:bg-white/5"
-                                        title="Copy to clipboard"
-                                    >
-                                        {copied ? (
-                                            <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                )}
+                                        }
+                                    }}
+                                    className={`transition-colors cursor-pointer p-1 rounded-lg hover:bg-white/5 ${
+                                        code ? 'text-gray-400 hover:text-cyan-400' : 'text-gray-500'
+                                    }`}
+                                    title={code ? "Copy to clipboard" : "No OTP to copy"}
+                                    disabled={!code}
+                                >
+                                    {copied ? (
+                                        <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                    )}
+                                </button>
                             </div>
                         </div>
                         
