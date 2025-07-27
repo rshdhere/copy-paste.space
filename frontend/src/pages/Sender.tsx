@@ -78,7 +78,7 @@ export function Sender(){
                                 <Feature />
                             </div>
                             <span className="text-white text-sm leading-relaxed">
-                            <b>Files and Code sharing</b> with multi-language support will be available in <b className="text-cyan-400"> V2</b>
+                            <b>Files and Code sharing</b> with multi-language support will be available in <b className="text-[#09B1CB]"> V2</b>
                             </span>
                         </div>
                     </div>
@@ -122,7 +122,7 @@ public class Example {
                                 href="https://github.com/rshdhere/online-clipboard"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center justify-center h-10 w-10 rounded-full border border-cyan-400/30 bg-cyan-400/10 cursor-pointer transition-colors hover:bg-cyan-400/20 hover:border-cyan-400"
+                                className="flex items-center justify-center h-10 w-10 rounded-full border border-cyan-400/30 bg-cyan-400/10 cursor-pointer transition-colors hover:bg-[#09B1CB]/20"
                                 title="give us a star"
                             >
                                 <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
