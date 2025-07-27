@@ -105,7 +105,7 @@ export function Receiver(){
                         <div className="text-cyan-400/80">
                             <Feature />
                         </div>
-                        <span className="text-gray-400 text-sm leading-relaxed font-satoshi">
+                        <span className="text-white text-sm leading-relaxed font-satoshi">
                             <b>Files and Code sharing</b> with multi-language support will be in <b className="text-cyan-400"> V2</b>
                         </span>
                     </div>
