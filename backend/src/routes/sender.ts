@@ -5,6 +5,11 @@ import { random } from "../utility/utility";
 
 const senderRouter = Router();
 
+// Health check endpoint for Railway
+senderRouter.get("/health", (req, res) => {
+    res.status(200).json({ status: "OK", message: "Server is running" });
+});
+
 senderRouter.post("/send", async (req, res) => {
     // validation for security
     try {
