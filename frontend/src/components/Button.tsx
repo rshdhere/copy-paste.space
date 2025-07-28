@@ -8,7 +8,7 @@ export function Button({ showBorder = true }: ButtonProps){
             showBorder ? 'border-4 border-white/40' : ''
         }`}>
             <video
-                src="/perplexity.mp4"
+                src="/boring.mp4"
                 autoPlay
                 loop
                 muted
