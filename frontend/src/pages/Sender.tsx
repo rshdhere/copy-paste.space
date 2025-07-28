@@ -134,7 +134,7 @@ public class Example {
                         <div className="flex items-center space-x-2 sm:space-x-3">
                             {/* GitHub Logo */}
                             <a
-                                href="https://github.com/rshdhere/online-clipboard"
+                                href="https://github.com/rshdhere/copy-paste.space"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full border border-cyan-400/30 bg-cyan-400/10 cursor-pointer transition-colors hover:bg-[#09B1CB]/20"
