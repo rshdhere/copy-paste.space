@@ -36,7 +36,7 @@ export function Receiver(){
 
     async function OTPChecker(){
         if(otpRef.current){
-            const value = otpRef.current.value.trim();
+            const value = otpRef.current.value.toUpperCase().trim();
             
             // Check if the OTP is empty or only whitespace
             if (!value) {
