@@ -52,8 +52,8 @@ export function Receiver(){
                 const response = await axios.get(`${backend_url}/api/v1/user/receive`, {
                     params: { userCode: value }
                 });
-                otpRef.current.value = "";
-                setOtp("");
+                // otpRef.current.value = "";
+                // setOtp("");
                 const dataArr = response.data?.data;
                 if (Array.isArray(dataArr) && dataArr.length > 0) {
                     setReceivedContent(dataArr[0].content);
