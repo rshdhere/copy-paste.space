@@ -30,7 +30,7 @@ receiverRouter.get("/receive", async (req, res) => {
                 data
             })
         } else {
-            res.status(400).json({
+            res.status(404).json({
                 message: "your code doesnt match with any content, or session expired"
             })
         }
