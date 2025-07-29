@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Button } from "../components/Button";
+import { Timer } from "../components/Timer";
 import { Feature } from "../assets/icons/Feature";
 const backend_url = import.meta.env.VITE_BACKEND_URI;
 
@@ -10,7 +11,55 @@ export function Sender(){
     const [code, setCode] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const [isTimerActive, setIsTimerActive] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Timer effect
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval> | null = null;
+        
+        if (isTimerActive && timeLeft !== null && timeLeft > 0) {
+            interval = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev !== null && prev > 0) {
+                        return prev - 1;
+                    } else {
+                        setIsTimerActive(false);
+                        setCode(null); // Reset OTP when timer expires
+                        return null;
+                    }
+                });
+            }, 1000);
+        }
+
+        return () => {
+            if (interval) {
+                clearInterval(interval);
+            }
+        };
+    }, [isTimerActive, timeLeft]);
+
+    const startTimer = () => {
+        setTimeLeft(60);
+        setIsTimerActive(true);
+    };
+
+    const clearContent = () => {
+        if (textareaRef.current) {
+            textareaRef.current.value = "";
+        }
+        setContent("");
+        setCode(null);
+        setErrorMessage("");
+        setCopied(false);
+        setTimeLeft(null);
+        setIsTimerActive(false);
+        if (textareaRef.current) {
+            textareaRef.current.focus();
+        }
+    };
+
 
     // useEffect(() => {
     //     console.log(content);
@@ -61,6 +110,7 @@ export function Sender(){
                 });
                 // textareaRef.current.value = "";
                 // setContent(""); // Clear state as well
+                startTimer()
                 setCode(response.data?.code || null); // Set the code from backend response
             } catch (error) {
                 console.error("Failed to send content:", error);
@@ -69,7 +119,7 @@ export function Sender(){
     }
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-0">
-            <div className="flex w-full max-w-[36rem] mt-4 relative z-10">
+            <div className="flex flex-col w-full max-w-[36rem] mt-4 relative z-10">
                 {/* Textarea container */}
                 <div className="flex flex-col w-full bg-[#2A2A2A] rounded-lg shadow-lg overflow-hidden relative border border-neutral-600">
                     {/* Hint section mounted on top */}
@@ -177,17 +227,25 @@ public class Example {
                         
                         {/* Right side - additional tools */}
                         <div className="flex items-center space-x-2 sm:space-x-3">
-                            {/* Chip/Processor icon */}
-                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                            </svg>
-                            {/* Globe icon */}
-                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            {/* Clear button */}
+                            <svg 
+                                onClick={clearContent}
+                                className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 cursor-pointer hover:text-white transition-colors" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <title>Clear content</title>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m5.082 11.09 8.828 8.828"/>
                             </svg>
                             {/* Paperclip icon */}
                             <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            {/* Globe icon */}
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             {/* Microphone icon */}
                             <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,6 +258,9 @@ public class Example {
                         </div>
                     </div>
                 </div>
+                
+                {/* Timer display outside textarea */}
+                <Timer isActive={isTimerActive} timeLeft={timeLeft} />
             </div>
         </div>
     );
