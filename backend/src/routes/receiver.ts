@@ -4,7 +4,7 @@ import { ContentModel } from "../database/database";
 
 const receiverRouter = Router();
 
-receiverRouter.get("/receive", async (req, res) => {
+receiverRouter.get("/receive", async (req: Request, res: Response) => {
     // validation for security
     try {
 

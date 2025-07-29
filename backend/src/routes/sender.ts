@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Response, Request } from "express";
 import { ContentSchema } from "../types/types";
 import { ContentModel } from "../database/database";
 import { random } from "../utility/utility";
@@ -6,11 +6,11 @@ import { random } from "../utility/utility";
 const senderRouter = Router();
 
 // Health check endpoint for Railway
-senderRouter.get("/health", (req, res) => {
+senderRouter.get("/health", (req: Request, res: Response) => {
     res.status(200).json({ status: "OK", message: "Server is running" });
 });
 
-senderRouter.post("/send", async (req, res) => {
+senderRouter.post("/send", async (req: Request, res: Response) => {
     // validation for security
     try {
         const parsedData = ContentSchema.safeParse(req.body);
