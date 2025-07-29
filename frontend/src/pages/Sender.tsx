@@ -444,10 +444,10 @@ public class Example {
                         
                         {/* Right side - additional tools */}
                         <div className="flex items-center space-x-2 sm:space-x-3">
-                            {/* Clear button */}
+                            {/* Clear button - hidden on mobile */}
                             <motion.svg 
                                 onClick={clearContent}
-                                className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 cursor-pointer hover:text-white transition-colors" 
+                                className="hidden sm:block w-4 h-4 sm:w-5 sm:h-5 text-gray-400 cursor-pointer hover:text-white transition-colors" 
                                 fill="none" 
                                 stroke="currentColor" 
                                 viewBox="0 0 24 24"
