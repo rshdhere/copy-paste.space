@@ -1,5 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 
+// will move from framer-motion to motion soon
+
 interface NotificationProps {
   isVisible: boolean;
   message: string;
