@@ -52,7 +52,7 @@ export function Sender(){
     useEffect(() => {
         const checkBackendHealth = async () => {
             try {
-                await axios.get(`${backend_url}/health`, { timeout: 5000 });
+                await axios.get(`${backend_url}/api/v1/user/health`, { timeout: 5000 });
             } catch (error) {
                 const axiosError = error as { 
                     code?: string; 
