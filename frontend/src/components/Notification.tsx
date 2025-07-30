@@ -93,8 +93,8 @@ export function Notification({ isVisible, message, type, onClose }: Notification
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <div className="flex items-start space-x-2 sm:space-x-3">
-              <div className={`${styles.icon} flex-shrink-0 mt-0.5`}>
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className={`${styles.icon} flex-shrink-0`}>
                 {getIcon()}
               </div>
               <div className="flex-1 min-w-0">
