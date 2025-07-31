@@ -1,12 +1,5 @@
 {
-  "routes": [
-    {
-      "src": "/.*\\.(env|yml|yaml|ini|log|bak|git|DS_Store)$",
-      "status": 403
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
   ]
 }
