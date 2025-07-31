@@ -3,6 +3,7 @@ import cors from "cors";
 import { ConnectedToDB } from "./database/database";
 import senderRouter from "./routes/sender";
 import receiverRouter from "./routes/receiver";
+import { startWarmupCron } from "./warmup-cron";
 const app = express();
 
 // for parsing user data
@@ -20,6 +21,8 @@ async function StartServer(){
     await ConnectedToDB();
     app.listen(PORT, "0.0.0.0", () => {
         console.log(`your server is listening on http://localhost:${PORT}`)
+        // Start the warmup cron job
+        startWarmupCron();
     })
 };
 
