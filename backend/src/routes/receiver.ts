@@ -1,10 +1,11 @@
 import { Request, Response, Router } from "express";
 import { OTPSchema } from "../types/types";
 import { ContentModel } from "../database/database";
+import { receiveRateLimiter } from "../middleware/rateLimit";
 
 const receiverRouter = Router();
 
-receiverRouter.get("/receive", async (req: Request, res: Response) => {
+receiverRouter.get("/receive", receiveRateLimiter, async (req: Request, res: Response) => {
     // validation for security
     try {
 

@@ -4,11 +4,16 @@ import { ConnectedToDB } from "./database/database";
 import senderRouter from "./routes/sender";
 import receiverRouter from "./routes/receiver";
 import { startWarmupCron } from "./warmup-cron";
+import { generalRateLimiter } from "./middleware/rateLimit";
+
 const app = express();
 
 // for parsing user data
 app.use(express.json());
 app.use(cors());
+
+// Apply general rate limiting to all routes
+app.use(generalRateLimiter);
 
 // routes
 app.use("/api/v1/user", senderRouter);

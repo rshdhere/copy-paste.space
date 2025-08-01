@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
     "mongoose": "^8.16.4",
     "node-cron": "^3.0.3",
     "zod": "^4.0.5"
