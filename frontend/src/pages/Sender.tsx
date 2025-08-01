@@ -7,6 +7,9 @@ import { Feature } from "../assets/icons/Feature";
 import { Notification } from "../components/Notification";
 const backend_url = import.meta.env.VITE_BACKEND_URI;
 
+// Maximum payload size in characters (matching backend limit)
+const MAX_PAYLOAD_SIZE = 10000;
+
 export function Sender(){
 
     const [content, setContent] = useState("");
@@ -21,7 +24,22 @@ export function Sender(){
     const [notificationType, setNotificationType] = useState<"error" | "warning" | "success" | "guide">("error");
     const [textareaHeight, setTextareaHeight] = useState(48); // Default height
     const [previousSessionData, setPreviousSessionData] = useState<{ code: string; timeLeft: number } | null>(null);
+    const [isPayloadTooLarge, setIsPayloadTooLarge] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Check payload size whenever content changes
+    useEffect(() => {
+        const isTooLarge = content.length > MAX_PAYLOAD_SIZE;
+        setIsPayloadTooLarge(isTooLarge);
+        
+        // Show notification when payload becomes too large (only once)
+        if (isTooLarge && !showNotification) {
+            setNotificationMessage("Content Limit Exceeded\nPlease reduce your content to proceed");
+            setNotificationType("warning");
+            setShowNotification(true);
+        }
+    }, [content, showNotification]);
 
     // Timer effect
     useEffect(() => {
@@ -146,6 +164,14 @@ export function Sender(){
                 return;
             }
             
+            // Check if payload is too large
+            if (value.length > MAX_PAYLOAD_SIZE) {
+                setNotificationMessage("Too much data! Please reduce your content.");
+                setNotificationType("warning");
+                setShowNotification(true);
+                return;
+            }
+            
             setErrorMessage(""); // Clear any previous error message
             setContent(value);
             
@@ -213,6 +239,11 @@ export function Sender(){
     }
 
     const handleCloseNotification = () => {
+        // Clear the auto-dismiss timer if it exists
+        if (autoDismissTimerRef.current) {
+            clearTimeout(autoDismissTimerRef.current);
+            autoDismissTimerRef.current = null;
+        }
         setShowNotification(false);
     };
 
@@ -252,11 +283,23 @@ export function Sender(){
     // Auto-dismiss other notifications after 3 seconds
     useEffect(() => {
         if (showNotification && !previousSessionData) {
-            const timer = setTimeout(() => {
+            // Clear any existing timer
+            if (autoDismissTimerRef.current) {
+                clearTimeout(autoDismissTimerRef.current);
+            }
+            
+            // Set new timer and store reference
+            autoDismissTimerRef.current = setTimeout(() => {
                 setShowNotification(false);
+                autoDismissTimerRef.current = null;
             }, 3000);
 
-            return () => clearTimeout(timer);
+            return () => {
+                if (autoDismissTimerRef.current) {
+                    clearTimeout(autoDismissTimerRef.current);
+                    autoDismissTimerRef.current = null;
+                }
+            };
         }
     }, [showNotification, previousSessionData]);
     return (
@@ -337,7 +380,9 @@ public class Example {
                                     } else {
                                         // On desktop, Enter generates OTP
                                         e.preventDefault();
-                                        SaveContent();
+                                        if (!isPayloadTooLarge) {
+                                            SaveContent();
+                                        }
                                     }
                                 }
                             }}
@@ -346,9 +391,24 @@ public class Example {
                     </div>
                     
                     {/* Bottom section with interactive icons */}
-                    <div className="flex items-center justify-between p-3 sm:p-4 border-t border-white/10 bg-[#2A2A2A]">
-                        {/* Left side - GitHub logo and OTP box */}
-                        <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="flex flex-col">
+                        {/* Character counter */}
+                        <div className="flex justify-end px-3 sm:px-4 pt-2 pb-1">
+                            <span className={`text-xs ${
+                                content.length > MAX_PAYLOAD_SIZE 
+                                    ? 'text-red-400' 
+                                    : content.length > MAX_PAYLOAD_SIZE * 0.8 
+                                        ? 'text-yellow-400' 
+                                        : 'text-gray-400'
+                            }`}>
+                                {content.length}/{MAX_PAYLOAD_SIZE}
+                            </span>
+                        </div>
+                        
+                        {/* Controls row */}
+                        <div className="flex items-center justify-between p-3 sm:p-4 border-t border-white/10 bg-[#2A2A2A]">
+                            {/* Left side - GitHub logo and OTP box */}
+                            <div className="flex items-center space-x-2 sm:space-x-3">
                             {/* GitHub Logo */}
                             <a
                                 href="https://github.com/rshdhere/copy-paste.space"
@@ -516,11 +576,12 @@ public class Example {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                             </svg>
                             {/* Send button */}
-                            <div onClick={SaveContent} className="cursor-pointer">
-                                <Button/>
+                            <div onClick={!isPayloadTooLarge ? SaveContent : undefined} className={isPayloadTooLarge ? "cursor-not-allowed" : "cursor-pointer"}>
+                                <Button disabled={isPayloadTooLarge}/>
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
                 
                 {/* Timer display outside textarea */}

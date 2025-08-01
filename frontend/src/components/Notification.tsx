@@ -100,9 +100,20 @@ export function Notification({ isVisible, message, type, onClose }: Notification
                 {getIcon()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`${styles.text} text-xs sm:text-sm font-medium leading-relaxed`}>
-                  {message}
-                </p>
+                {message.includes('\n') ? (
+                  <div className="space-y-1">
+                    <p className={`${styles.text} text-sm sm:text-base font-semibold leading-tight`}>
+                      {message.split('\n')[0]}
+                    </p>
+                    <p className={`${styles.text} text-xs sm:text-sm font-normal leading-relaxed opacity-80`}>
+                      {message.split('\n')[1]}
+                    </p>
+                  </div>
+                ) : (
+                  <p className={`${styles.text} text-xs sm:text-sm font-medium leading-relaxed`}>
+                    {message}
+                  </p>
+                )}
               </div>
               <button
                 onClick={onClose}
