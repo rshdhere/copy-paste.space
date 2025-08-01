@@ -20,8 +20,11 @@ export function Receiver(){
         message: "",
         type: "error"
     });
+    const [isRateLimited, setIsRateLimited] = useState(false);
+    const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
     const otpRef = useRef<HTMLInputElement>(null);
     const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // useEffect(() => {
     //     console.log(otp)
@@ -136,8 +139,32 @@ export function Receiver(){
             } catch(error) {
                 console.error("Failed to fetch content:", error);
                 
-                // Check if it's a 404 error (wrong OTP or expired session)
+                // Check if it's a rate limiting error
                 const axiosError = error as { response?: { status?: number; data?: unknown } };
+                if (axiosError.response?.status === 429) {
+                    const errorInfo = detectNetworkError(error);
+                    const retrySeconds = errorInfo.retryAfter || 90; // Use backend retry time or default to 90 seconds
+                    setIsRateLimited(true);
+                    setRateLimitCooldown(retrySeconds);
+                    // Save rate limit state to localStorage
+                    localStorage.setItem('receiverRateLimit', JSON.stringify({
+                        timestamp: Date.now(),
+                        cooldown: retrySeconds
+                    }));
+                    // Clear any existing notifications and show rate limit notification
+                    setNotification(prev => ({ ...prev, isVisible: false }));
+                    setTimeout(() => {
+                        setNotification({
+                            isVisible: true,
+                            message: errorInfo.message,
+                            type: errorInfo.type
+                        });
+                    }, 100);
+                    setReceivedContent(null);
+                    return;
+                }
+                
+                // Check if it's a 404 error (wrong OTP or expired session)
                 if (axiosError.response?.status === 404) {
                     setNotification({
                         isVisible: true,
@@ -178,9 +205,9 @@ export function Receiver(){
         }
     }
 
-    // Auto-dismiss notifications after 3 seconds
+    // Auto-dismiss notifications after 3 seconds (but not during rate limiting)
     useEffect(() => {
-        if (notification.isVisible) {
+        if (notification.isVisible && !isRateLimited) {
             // Clear any existing timer
             if (autoDismissTimerRef.current) {
                 clearTimeout(autoDismissTimerRef.current);
@@ -199,7 +226,59 @@ export function Receiver(){
                 }
             };
         }
-    }, [notification.isVisible]);
+    }, [notification.isVisible, isRateLimited]);
+
+    // Rate limiting cooldown timer
+    useEffect(() => {
+        if (isRateLimited && rateLimitCooldown > 0) {
+            rateLimitTimerRef.current = setInterval(() => {
+                setRateLimitCooldown(prev => {
+                    if (prev <= 1) {
+                        setIsRateLimited(false);
+                        // Clear localStorage when timer finishes
+                        localStorage.removeItem('receiverRateLimit');
+                        return 0;
+                    }
+                    const newValue = prev - 1;
+                    // Update localStorage with new countdown value
+                    localStorage.setItem('receiverRateLimit', JSON.stringify({
+                        timestamp: Date.now(),
+                        cooldown: newValue
+                    }));
+                    return newValue;
+                });
+            }, 1000);
+
+            return () => {
+                if (rateLimitTimerRef.current) {
+                    clearInterval(rateLimitTimerRef.current);
+                }
+            };
+        }
+    }, [isRateLimited, rateLimitCooldown]);
+
+    // Check for existing rate limit on component mount
+    useEffect(() => {
+        const savedRateLimit = localStorage.getItem('receiverRateLimit');
+        if (savedRateLimit) {
+            try {
+                const { timestamp, cooldown } = JSON.parse(savedRateLimit);
+                const elapsed = Math.floor((Date.now() - timestamp) / 1000);
+                const remaining = Math.max(0, cooldown - elapsed);
+                
+                if (remaining > 0) {
+                    setIsRateLimited(true);
+                    setRateLimitCooldown(remaining);
+                } else {
+                    // Clear expired rate limit
+                    localStorage.removeItem('receiverRateLimit');
+                }
+            } catch {
+                // Clear invalid localStorage data
+                localStorage.removeItem('receiverRateLimit');
+            }
+        }
+    }, []);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-6 lg:px-8">
@@ -222,20 +301,23 @@ export function Receiver(){
                     <div className="flex items-center justify-center">
                         <div className="flex items-center space-x-2 sm:space-x-3 w-full relative">
                             <input 
-                                className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-center border-transparent rounded-l-lg bg-transparent transition-all duration-100 ease-out focus:outline-none placeholder:text-center text-base sm:text-lg font-satoshi placeholder:font-satoshi text-white placeholder-gray-400 [&::selection]:bg-cyan-400/30 [&::selection]:text-[#00d8ff] [&::-moz-selection]:bg-cyan-400/30 [&::-moz-selection]:text-[#00d8ff]"
+                                className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 text-center border-transparent rounded-l-lg bg-transparent transition-all duration-100 ease-out focus:outline-none placeholder:text-center text-base sm:text-lg font-satoshi placeholder:font-satoshi [&::selection]:bg-cyan-400/30 [&::selection]:text-[#00d8ff] [&::-moz-selection]:bg-cyan-400/30 [&::-moz-selection]:text-[#00d8ff] ${
+                                    isRateLimited ? 'text-gray-500 placeholder-gray-500' : 'text-white placeholder-gray-400'
+                                }`}
                                 type="text" 
                                 maxLength={4} 
                                 ref={otpRef}
                                 placeholder={placeholder}
                                 spellCheck={false}
+                                disabled={isRateLimited}
                                 onChange={e => {
                                     setOtp(e.target.value);
-                                    if (notification.isVisible) {
+                                    if (notification.isVisible && !isRateLimited) {
                                         setNotification(prev => ({ ...prev, isVisible: false }));
                                     }
                                 }}
                                 onKeyDown={e => {
-                                    if (e.key === 'Enter') {
+                                    if (e.key === 'Enter' && !isRateLimited) {
                                         OTPChecker();
                                     }
                                 }}
@@ -244,16 +326,18 @@ export function Receiver(){
                                     transition: 'opacity 0.4s ease-in-out'
                                 }}
                             />
-                            <div onClick={OTPChecker} className="cursor-pointer relative">
-                                <Button showBorder={false}/>
+                            <div onClick={!isRateLimited ? OTPChecker : undefined} className={isRateLimited ? "cursor-not-allowed" : "cursor-pointer relative"}>
+                                <Button showBorder={false} disabled={isRateLimited} rateLimitCooldown={rateLimitCooldown}/>
                                 {/* Progress Ring as button border */}
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <ProgressRing 
-                                        value={otp} 
-                                        maxLength={4} 
-                                        size={64} 
-                                        strokeWidth={4}
-                                    />
+                                    {!isRateLimited && (
+                                        <ProgressRing 
+                                            value={otp} 
+                                            maxLength={4} 
+                                            size={64} 
+                                            strokeWidth={4}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -4,10 +4,25 @@ export interface NetworkErrorInfo {
   message: string;
   type: 'error' | 'warning';
   isMobileNetworkIssue: boolean;
+  retryAfter?: number;
 }
 
 export function detectNetworkError(error: unknown): NetworkErrorInfo {
   const axiosError = error as AxiosError;
+  
+  // Check for rate limiting errors (429 status code)
+  if (axiosError.response?.status === 429) {
+    const retryAfter = axiosError.response.headers['retry-after'] || 
+                      axiosError.response.headers['Retry-After'];
+    const retrySeconds = retryAfter ? parseInt(retryAfter.toString()) : 90; // Default to 90 seconds
+    
+    return {
+      message: `Too many requests\nPlease wait ${retrySeconds} seconds before trying again`,
+      type: "warning",
+      isMobileNetworkIssue: false,
+      retryAfter: retrySeconds
+    };
+  }
   
   // Check for mobile network connectivity issues (specific network error codes)
   if (axiosError.code === "NETWORK_ERROR" || 

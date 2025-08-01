@@ -26,8 +26,63 @@ export function Sender(){
     const [textareaHeight, setTextareaHeight] = useState(48); // Default height
     const [previousSessionData, setPreviousSessionData] = useState<{ code: string; timeLeft: number } | null>(null);
     const [isPayloadTooLarge, setIsPayloadTooLarge] = useState(false);
+    const [isRateLimited, setIsRateLimited] = useState(false);
+    const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Rate limiting cooldown timer
+    useEffect(() => {
+        if (isRateLimited && rateLimitCooldown > 0) {
+            rateLimitTimerRef.current = setInterval(() => {
+                setRateLimitCooldown(prev => {
+                    if (prev <= 1) {
+                        setIsRateLimited(false);
+                        // Clear localStorage when timer finishes
+                        localStorage.removeItem('senderRateLimit');
+                        return 0;
+                    }
+                    const newValue = prev - 1;
+                    // Update localStorage with new countdown value
+                    localStorage.setItem('senderRateLimit', JSON.stringify({
+                        timestamp: Date.now(),
+                        cooldown: newValue
+                    }));
+                    return newValue;
+                });
+            }, 1000);
+
+            return () => {
+                if (rateLimitTimerRef.current) {
+                    clearInterval(rateLimitTimerRef.current);
+                }
+            };
+        }
+    }, [isRateLimited, rateLimitCooldown]);
+
+    // Check for existing rate limit on component mount
+    useEffect(() => {
+        const savedRateLimit = localStorage.getItem('senderRateLimit');
+        if (savedRateLimit) {
+            try {
+                const { timestamp, cooldown } = JSON.parse(savedRateLimit);
+                const elapsed = Math.floor((Date.now() - timestamp) / 1000);
+                const remaining = Math.max(0, cooldown - elapsed);
+                
+                if (remaining > 0) {
+                    setIsRateLimited(true);
+                    setRateLimitCooldown(remaining);
+                } else {
+                    // Clear expired rate limit
+                    localStorage.removeItem('senderRateLimit');
+                }
+            } catch {
+                // Clear invalid localStorage data
+                localStorage.removeItem('senderRateLimit');
+            }
+        }
+    }, []);
 
     // Check payload size whenever content changes
     useEffect(() => {
@@ -104,9 +159,11 @@ export function Sender(){
     };
 
     const clearContent = () => {
-        setNotificationMessage("Ctrl + A and Backspace");
-        setNotificationType("guide");
-        setShowNotification(true);
+        if (!isRateLimited) {
+            setNotificationMessage("Ctrl + A and Backspace");
+            setNotificationType("guide");
+            setShowNotification(true);
+        }
     };
 
     const handleIconClick = () => {
@@ -196,8 +253,8 @@ export function Sender(){
                 
                 const newCode = response.data?.code || null;
                 
-                // Show notification immediately if there was a previous active session
-                if (hasActiveSession && previousCode && previousTimeLeft) {
+                // Show notification immediately if there was a previous active session (but not during rate limiting)
+                if (hasActiveSession && previousCode && previousTimeLeft && !isRateLimited) {
                     const formatTime = (seconds: number): string => {
                         const mins = Math.floor(seconds / 60);
                         const secs = seconds % 60;
@@ -217,6 +274,33 @@ export function Sender(){
                 console.error("Failed to send content:", error);
                 
                 const errorInfo = detectNetworkError(error);
+                
+                // Check if it's a rate limiting error
+                const axiosError = error as { response?: { status?: number } };
+                if (axiosError.response?.status === 429) {
+                    const retrySeconds = errorInfo.retryAfter || 90; // Use backend retry time or default to 90 seconds
+                    setIsRateLimited(true);
+                    setRateLimitCooldown(retrySeconds);
+                    // Save rate limit state to localStorage
+                    localStorage.setItem('senderRateLimit', JSON.stringify({
+                        timestamp: Date.now(),
+                        cooldown: retrySeconds
+                    }));
+                    // Clear ALL existing notifications including previous session data
+                    setShowNotification(false);
+                    setPreviousSessionData(null);
+                    // Clear any existing timers
+                    if (autoDismissTimerRef.current) {
+                        clearTimeout(autoDismissTimerRef.current);
+                        autoDismissTimerRef.current = null;
+                    }
+                    setTimeout(() => {
+                        setNotificationMessage(errorInfo.message);
+                        setNotificationType(errorInfo.type);
+                        setShowNotification(true);
+                    }, 100);
+                    return;
+                }
                 
                 // If it's a connection issue, try to determine if it's backend down or network issue
                 if (errorInfo.isMobileNetworkIssue && !errorInfo.message.includes("Backend Is Down")) {
@@ -248,9 +332,9 @@ export function Sender(){
         setShowNotification(false);
     };
 
-    // Real-time countdown for previous session notification
+    // Real-time countdown for previous session notification (but not during rate limiting)
     useEffect(() => {
-        if (showNotification && previousSessionData && previousSessionData.timeLeft > 0) {
+        if (showNotification && previousSessionData && previousSessionData.timeLeft > 0 && !isRateLimited) {
             const interval = setInterval(() => {
                 setPreviousSessionData(prev => {
                     if (prev && prev.timeLeft > 0) {
@@ -279,11 +363,11 @@ export function Sender(){
 
             return () => clearInterval(interval);
         }
-    }, [showNotification, previousSessionData]);
+    }, [showNotification, previousSessionData, isRateLimited]);
 
-    // Auto-dismiss other notifications after 3 seconds
+    // Auto-dismiss other notifications after 3 seconds (but not during rate limiting)
     useEffect(() => {
-        if (showNotification && !previousSessionData) {
+        if (showNotification && !previousSessionData && !isRateLimited) {
             // Clear any existing timer
             if (autoDismissTimerRef.current) {
                 clearTimeout(autoDismissTimerRef.current);
@@ -302,7 +386,7 @@ export function Sender(){
                 }
             };
         }
-    }, [showNotification, previousSessionData]);
+    }, [showNotification, previousSessionData, isRateLimited]);
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-0">
             <div className="flex flex-col w-full max-w-[36rem] mt-4 relative z-10">
@@ -333,8 +417,9 @@ export function Sender(){
                     <div className="flex-4 p-3 sm:p-4 pt-6 sm:pt-8 pb-2">
                         <motion.textarea
                             className={`w-full min-w-0 resize-none focus:outline-none border-none bg-transparent pt-2 pl-2 text-left placeholder:text-left [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-cyan-300 [&::-webkit-scrollbar-thumb]:cursor-pointer [&::selection]:bg-cyan-400/30 [&::selection]:text-[#00d8ff] [&::-moz-selection]:bg-cyan-400/30 [&::-moz-selection]:text-[#00d8ff] text-sm sm:text-base ${
-                                errorMessage ? 'text-red-400 placeholder-red-400' : 'text-white placeholder-gray-400'
+                                errorMessage ? 'text-red-400 placeholder-red-400' : isRateLimited ? 'text-gray-500 placeholder-gray-500' : 'text-white placeholder-gray-400'
                             }`}
+                            disabled={isRateLimited}
                             style={{ height: textareaHeight }}
                             animate={{
                                 height: textareaHeight
@@ -381,7 +466,7 @@ public class Example {
                                     } else {
                                         // On desktop, Enter generates OTP
                                         e.preventDefault();
-                                        if (!isPayloadTooLarge) {
+                                        if (!isPayloadTooLarge && !isRateLimited) {
                                             SaveContent();
                                         }
                                     }
@@ -577,8 +662,8 @@ public class Example {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                             </svg>
                             {/* Send button */}
-                            <div onClick={!isPayloadTooLarge ? SaveContent : undefined} className={isPayloadTooLarge ? "cursor-not-allowed" : "cursor-pointer"}>
-                                <Button disabled={isPayloadTooLarge}/>
+                            <div onClick={(!isPayloadTooLarge && !isRateLimited) ? SaveContent : undefined} className={isPayloadTooLarge || isRateLimited ? "cursor-not-allowed" : "cursor-pointer"}>
+                                <Button disabled={isPayloadTooLarge || isRateLimited} rateLimitCooldown={rateLimitCooldown}/>
                             </div>
                         </div>
                     </div>
