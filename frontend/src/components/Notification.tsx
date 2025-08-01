@@ -102,10 +102,10 @@ export function Notification({ isVisible, message, type, onClose }: Notification
               <div className="flex-1 min-w-0">
                 {message.includes('\n') ? (
                   <div className="space-y-1">
-                    <p className={`${styles.text} text-sm sm:text-base font-semibold leading-tight`}>
+                    <p className={`${styles.text} text-base sm:text-lg font-bold leading-tight`}>
                       {message.split('\n')[0]}
                     </p>
-                    <p className={`${styles.text} text-xs sm:text-sm font-normal leading-relaxed opacity-80`}>
+                    <p className={`${styles.text} text-xs sm:text-sm font-normal leading-relaxed opacity-70`}>
                       {message.split('\n')[1]}
                     </p>
                   </div>

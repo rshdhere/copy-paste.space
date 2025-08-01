@@ -5,6 +5,7 @@ import { Button } from "../components/Button";
 import { Timer } from "../components/Timer";
 import { Feature } from "../assets/icons/Feature";
 import { Notification } from "../components/Notification";
+import { detectNetworkError, getOptimalTimeout, checkBackendStatus } from "../utils/networkUtils";
 const backend_url = import.meta.env.VITE_BACKEND_URI;
 
 // Maximum payload size in characters (matching backend limit)
@@ -70,19 +71,27 @@ export function Sender(){
     useEffect(() => {
         const checkBackendHealth = async () => {
             try {
-                await axios.get(`${backend_url}/api/v1/user/health`, { timeout: 5000 });
+                await axios.get(`${backend_url}/api/v1/user/health`, { timeout: getOptimalTimeout() });
             } catch (error) {
-                const axiosError = error as { 
-                    code?: string; 
-                    response?: { status?: number }; 
-                };
+                const errorInfo = detectNetworkError(error);
                 
-                // Only show notification if it's a connection error, not if health endpoint doesn't exist
-                if (!axiosError.response || axiosError.code === "NETWORK_ERROR" || axiosError.code === "ERR_NETWORK") {
-                    setNotificationMessage("BACKEND IS DOWN, WILL BE FIXED SOON");
-                    setNotificationType("warning");
-                    setShowNotification(true);
+                // If it's a connection issue, try to determine if it's backend down or network issue
+                if (errorInfo.isMobileNetworkIssue && !errorInfo.message.includes("Backend Is Down")) {
+                    const isNetworkIssue = await checkBackendStatus();
+                    if (!isNetworkIssue) {
+                        // If we can reach internet but not backend, it's backend down
+                        setNotificationMessage("Backend Is Down\nWe are on it, please try again later");
+                        setNotificationType("error");
+                    } else {
+                        // It's a network issue
+                        setNotificationMessage(errorInfo.message);
+                        setNotificationType(errorInfo.type);
+                    }
+                } else {
+                    setNotificationMessage(errorInfo.message);
+                    setNotificationType(errorInfo.type);
                 }
+                setShowNotification(true);
             }
         };
 
@@ -183,7 +192,7 @@ export function Sender(){
             try {
                 const response = await axios.post(`${backend_url}/api/v1/user/send`, {
                     content: value
-                });
+                }, { timeout: getOptimalTimeout() });
                 
                 const newCode = response.data?.code || null;
                 
@@ -207,32 +216,24 @@ export function Sender(){
             } catch (error) {
                 console.error("Failed to send content:", error);
                 
-                // Determine the type of error and show appropriate message
-                let errorMessage = "Backend server is currently down. Please try again later.";
-                let notificationType: "error" | "warning" = "error";
+                const errorInfo = detectNetworkError(error);
                 
-                // Type guard to check if error has response property
-                const axiosError = error as { 
-                    code?: string; 
-                    response?: { status?: number }; 
-                };
-                
-                if (axiosError.code === "NETWORK_ERROR" || axiosError.code === "ERR_NETWORK") {
-                    errorMessage = "Network error, please check your Internet";
-                    notificationType = "warning";
-                } else if (axiosError.response?.status === 500) {
-                    errorMessage = "Server error. Please try again later.";
-                } else if (axiosError.response?.status === 404) {
-                    errorMessage = "Service not found.";
-                } else if (axiosError.response?.status && axiosError.response.status >= 400 && axiosError.response.status < 500) {
-                    errorMessage = "Request failed. Please check your input and try again.";
-                    notificationType = "warning";
-                } else if (!axiosError.response) {
-                    errorMessage = "Cannot connect to server. Please check if the backend is up.";
+                // If it's a connection issue, try to determine if it's backend down or network issue
+                if (errorInfo.isMobileNetworkIssue && !errorInfo.message.includes("Backend Is Down")) {
+                    const isNetworkIssue = await checkBackendStatus();
+                    if (!isNetworkIssue) {
+                        // If we can reach internet but not backend, it's backend down
+                        setNotificationMessage("Backend Is Down\nWe are on it, please try again later");
+                        setNotificationType("error");
+                    } else {
+                        // It's a network issue
+                        setNotificationMessage(errorInfo.message);
+                        setNotificationType(errorInfo.type);
+                    }
+                } else {
+                    setNotificationMessage(errorInfo.message);
+                    setNotificationType(errorInfo.type);
                 }
-                
-                setNotificationMessage(errorMessage);
-                setNotificationType(notificationType);
                 setShowNotification(true);
             }
         }
