@@ -2,6 +2,7 @@ import { Router, Response, Request } from "express";
 import { ContentSchema } from "../types/types";
 import { ContentModel } from "../database/database";
 import { random } from "../utility/utility";
+import { sendRateLimiter } from "../middleware/rateLimit";
 
 const senderRouter = Router();
 
@@ -10,7 +11,7 @@ senderRouter.get("/health", (req: Request, res: Response) => {
     res.status(200).json({ status: "OK", message: "Server is running" });
 });
 
-senderRouter.post("/send", async (req: Request, res: Response) => {
+senderRouter.post("/send", sendRateLimiter, async (req: Request, res: Response) => {
     // validation for security
     try {
         const parsedData = ContentSchema.safeParse(req.body);
