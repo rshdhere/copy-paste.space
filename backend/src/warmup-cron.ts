@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import axios from 'axios';
 
 const PORT = process.env.PORT;
-const BACKEND_URL = `http://localhost:${PORT}`;
+const BACKEND_URL = `http://0.0.0.0:${PORT}`;
 
 // Function to ping the backend
 async function pingBackend() {
