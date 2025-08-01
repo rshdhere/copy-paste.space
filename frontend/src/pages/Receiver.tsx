@@ -5,6 +5,7 @@ import { Button } from "../components/Button";
 import { ProgressRing } from "../components/ProgressRing";
 import { Feature } from "../assets/icons/Feature";
 import { Notification } from "../components/Notification";
+import { detectNetworkError, getOptimalTimeout, checkBackendStatus } from "../utils/networkUtils";
 const backend_url = import.meta.env.VITE_BACKEND_URI;
 
 export function Receiver(){
@@ -20,6 +21,7 @@ export function Receiver(){
         type: "error"
     });
     const otpRef = useRef<HTMLInputElement>(null);
+    const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // useEffect(() => {
     //     console.log(otp)
@@ -57,6 +59,45 @@ export function Receiver(){
         };
     }, []);
 
+    // Backend health check on component mount
+    useEffect(() => {
+        const checkBackendHealth = async () => {
+            try {
+                await axios.get(`${backend_url}/api/v1/user/health`, { timeout: getOptimalTimeout() });
+            } catch (error) {
+                const errorInfo = detectNetworkError(error);
+                
+                // If it's a connection issue, try to determine if it's backend down or network issue
+                if (errorInfo.isMobileNetworkIssue && !errorInfo.message.includes("Backend Is Down")) {
+                    const isNetworkIssue = await checkBackendStatus();
+                    if (!isNetworkIssue) {
+                        // If we can reach internet but not backend, it's backend down
+                        setNotification({
+                            isVisible: true,
+                            message: "Backend Is Down\nWe are on it, please try again later",
+                            type: "error"
+                        });
+                    } else {
+                        // It's a network issue
+                        setNotification({
+                            isVisible: true,
+                            message: errorInfo.message,
+                            type: errorInfo.type
+                        });
+                    }
+                } else {
+                    setNotification({
+                        isVisible: true,
+                        message: errorInfo.message,
+                        type: errorInfo.type
+                    });
+                }
+            }
+        };
+
+        checkBackendHealth();
+    }, []);
+
     async function OTPChecker(){
         if(otpRef.current){
             const value = otpRef.current.value.toUpperCase().trim();
@@ -76,7 +117,8 @@ export function Receiver(){
             
             try{
                 const response = await axios.get(`${backend_url}/api/v1/user/receive`, {
-                    params: { userCode: value }
+                    params: { userCode: value },
+                    timeout: getOptimalTimeout()
                 });
                 // otpRef.current.value = "";
                 // setOtp("");
@@ -93,15 +135,71 @@ export function Receiver(){
                 }
             } catch(error) {
                 console.error("Failed to fetch content:", error);
-                setNotification({
-                    isVisible: true,
-                    message: "Wrong OTP",
-                    type: "error"
-                });
+                
+                // Check if it's a 404 error (wrong OTP or expired session)
+                const axiosError = error as { response?: { status?: number; data?: unknown } };
+                if (axiosError.response?.status === 404) {
+                    setNotification({
+                        isVisible: true,
+                        message: "Wrong OTP\nCode doesn't match or session expired",
+                        type: "error"
+                    });
+                } else {
+                    const errorInfo = detectNetworkError(error);
+                    
+                    // If it's a connection issue, try to determine if it's backend down or network issue
+                    if (errorInfo.isMobileNetworkIssue && !errorInfo.message.includes("Backend Is Down")) {
+                        const isNetworkIssue = await checkBackendStatus();
+                        if (!isNetworkIssue) {
+                            // If we can reach internet but not backend, it's backend down
+                            setNotification({
+                                isVisible: true,
+                                message: "Backend Is Down\nWe are on it, please try again later",
+                                type: "error"
+                            });
+                        } else {
+                            // It's a network issue
+                            setNotification({
+                                isVisible: true,
+                                message: errorInfo.message,
+                                type: errorInfo.type
+                            });
+                        }
+                    } else {
+                        setNotification({
+                            isVisible: true,
+                            message: errorInfo.message,
+                            type: errorInfo.type
+                        });
+                    }
+                }
                 setReceivedContent(null); // Clear any previous content
             }
         }
     }
+
+    // Auto-dismiss notifications after 3 seconds
+    useEffect(() => {
+        if (notification.isVisible) {
+            // Clear any existing timer
+            if (autoDismissTimerRef.current) {
+                clearTimeout(autoDismissTimerRef.current);
+            }
+            
+            // Set new timer and store reference
+            autoDismissTimerRef.current = setTimeout(() => {
+                setNotification(prev => ({ ...prev, isVisible: false }));
+                autoDismissTimerRef.current = null;
+            }, 3000);
+
+            return () => {
+                if (autoDismissTimerRef.current) {
+                    clearTimeout(autoDismissTimerRef.current);
+                    autoDismissTimerRef.current = null;
+                }
+            };
+        }
+    }, [notification.isVisible]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-6 lg:px-8">
@@ -124,7 +222,7 @@ export function Receiver(){
                     <div className="flex items-center justify-center">
                         <div className="flex items-center space-x-2 sm:space-x-3 w-full relative">
                             <input 
-                                className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-center border-transparent rounded-l-lg bg-transparent transition-all duration-100 ease-out focus:outline-none placeholder:text-center text-base sm:text-lg font-satoshi placeholder:font-satoshi text-white placeholder-gray-400"
+                                className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-center border-transparent rounded-l-lg bg-transparent transition-all duration-100 ease-out focus:outline-none placeholder:text-center text-base sm:text-lg font-satoshi placeholder:font-satoshi text-white placeholder-gray-400 [&::selection]:bg-cyan-400/30 [&::selection]:text-[#00d8ff] [&::-moz-selection]:bg-cyan-400/30 [&::-moz-selection]:text-[#00d8ff]"
                                 type="text" 
                                 maxLength={4} 
                                 ref={otpRef}
@@ -191,7 +289,14 @@ export function Receiver(){
                     isVisible={notification.isVisible}
                     message={notification.message}
                     type={notification.type}
-                    onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))}
+                    onClose={() => {
+                        // Clear the auto-dismiss timer if it exists
+                        if (autoDismissTimerRef.current) {
+                            clearTimeout(autoDismissTimerRef.current);
+                            autoDismissTimerRef.current = null;
+                        }
+                        setNotification(prev => ({ ...prev, isVisible: false }));
+                    }}
                 />
                 
 
