@@ -8,9 +8,24 @@ import { generalRateLimiter } from "./middleware/rateLimit";
 
 const app = express();
 
+// Trust proxy for proper IP handling behind reverse proxy (Vercel + Railway)
+// Trust only specific proxy IPs or use 'loopback' for local development
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : 'loopback');
+
 // for parsing user data
 app.use(express.json());
 app.use(cors());
+
+// IP logging middleware for debugging
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    console.log(`  Client IP: ${req.ip}`);
+    console.log(`  Remote Address: ${req.connection.remoteAddress}`);
+    console.log(`  X-Forwarded-For: ${req.headers['x-forwarded-for'] || 'not set'}`);
+    console.log(`  X-Real-IP: ${req.headers['x-real-ip'] || 'not set'}`);
+    console.log(`  User-Agent: ${req.headers['user-agent']?.substring(0, 50)}...`);
+    next();
+});
 
 // Apply general rate limiting to all routes
 app.use(generalRateLimiter);
@@ -18,6 +33,18 @@ app.use(generalRateLimiter);
 // routes
 app.use("/api/v1/user", senderRouter);
 app.use("/api/v1/user", receiverRouter);
+
+// Test endpoint to verify rate limiting
+app.get("/test-rate-limit", (req, res) => {
+    res.json({
+        message: "Rate limit test endpoint",
+        clientIP: req.ip,
+        headers: {
+            'x-forwarded-for': req.headers['x-forwarded-for'],
+            'x-real-ip': req.headers['x-real-ip']
+        }
+    });
+});
 
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
