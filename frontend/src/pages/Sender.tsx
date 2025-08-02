@@ -28,6 +28,7 @@ export function Sender(){
     const [isPayloadTooLarge, setIsPayloadTooLarge] = useState(false);
     const [isRateLimited, setIsRateLimited] = useState(false);
     const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
+    const [isRateLimitNotificationActive, setIsRateLimitNotificationActive] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -39,6 +40,7 @@ export function Sender(){
                 setRateLimitCooldown(prev => {
                     if (prev <= 1) {
                         setIsRateLimited(false);
+                        setIsRateLimitNotificationActive(false);
                         // Clear localStorage when timer finishes
                         localStorage.removeItem('senderRateLimit');
                         return 0;
@@ -89,13 +91,13 @@ export function Sender(){
         const isTooLarge = content.length > MAX_PAYLOAD_SIZE;
         setIsPayloadTooLarge(isTooLarge);
         
-        // Show notification when payload becomes too large (only once)
-        if (isTooLarge && !showNotification) {
+        // Show notification when payload becomes too large (only once) - but not during rate limiting
+        if (isTooLarge && !showNotification && !isRateLimited && !isRateLimitNotificationActive) {
             setNotificationMessage("Content Limit Exceeded\nPlease reduce your content to proceed");
             setNotificationType("warning");
             setShowNotification(true);
         }
-    }, [content, showNotification]);
+    }, [content, showNotification, isRateLimited, isRateLimitNotificationActive]);
 
     // Timer effect
     useEffect(() => {
@@ -146,12 +148,18 @@ export function Sender(){
                     setNotificationMessage(errorInfo.message);
                     setNotificationType(errorInfo.type);
                 }
-                setShowNotification(true);
+                // Only show notification if not in rate limit mode
+                if (!isRateLimitNotificationActive) {
+                    setShowNotification(true);
+                }
             }
         };
 
-        checkBackendHealth();
-    }, []);
+        // Only run health check if not rate limited
+        if (!isRateLimited && !isRateLimitNotificationActive) {
+            checkBackendHealth();
+        }
+    }, [isRateLimited, isRateLimitNotificationActive]);
 
     const startTimer = () => {
         setTimeLeft(120);
@@ -159,7 +167,7 @@ export function Sender(){
     };
 
     const clearContent = () => {
-        if (!isRateLimited) {
+        if (!isRateLimited && !isRateLimitNotificationActive) {
             setNotificationMessage("Ctrl + A and Backspace");
             setNotificationType("guide");
             setShowNotification(true);
@@ -167,8 +175,10 @@ export function Sender(){
     };
 
     const handleIconClick = () => {
-        setHintHighlight(true);
-        setTimeout(() => setHintHighlight(false), 2000);
+        if (!isRateLimited && !isRateLimitNotificationActive) {
+            setHintHighlight(true);
+            setTimeout(() => setHintHighlight(false), 2000);
+        }
     };
 
 
@@ -254,7 +264,7 @@ export function Sender(){
                 const newCode = response.data?.code || null;
                 
                 // Show notification immediately if there was a previous active session (but not during rate limiting)
-                if (hasActiveSession && previousCode && previousTimeLeft && !isRateLimited) {
+                if (hasActiveSession && previousCode && previousTimeLeft && !isRateLimited && !isRateLimitNotificationActive) {
                     const formatTime = (seconds: number): string => {
                         const mins = Math.floor(seconds / 60);
                         const secs = seconds % 60;
@@ -281,6 +291,7 @@ export function Sender(){
                     const retrySeconds = errorInfo.retryAfter || 90; // Use backend retry time or default to 90 seconds
                     setIsRateLimited(true);
                     setRateLimitCooldown(retrySeconds);
+                    setIsRateLimitNotificationActive(true);
                     // Save rate limit state to localStorage
                     localStorage.setItem('senderRateLimit', JSON.stringify({
                         timestamp: Date.now(),
@@ -293,6 +304,11 @@ export function Sender(){
                     if (autoDismissTimerRef.current) {
                         clearTimeout(autoDismissTimerRef.current);
                         autoDismissTimerRef.current = null;
+                    }
+                    // Clear any existing intervals for previous session countdown
+                    if (rateLimitTimerRef.current) {
+                        clearInterval(rateLimitTimerRef.current);
+                        rateLimitTimerRef.current = null;
                     }
                     setTimeout(() => {
                         setNotificationMessage(errorInfo.message);
@@ -324,6 +340,11 @@ export function Sender(){
     }
 
     const handleCloseNotification = () => {
+        // Don't allow closing rate limit notifications
+        if (isRateLimited || isRateLimitNotificationActive) {
+            return;
+        }
+        
         // Clear the auto-dismiss timer if it exists
         if (autoDismissTimerRef.current) {
             clearTimeout(autoDismissTimerRef.current);
@@ -334,8 +355,21 @@ export function Sender(){
 
     // Real-time countdown for previous session notification (but not during rate limiting)
     useEffect(() => {
-        if (showNotification && previousSessionData && previousSessionData.timeLeft > 0 && !isRateLimited) {
+        // Block any previous session notifications when rate limited
+        if (isRateLimited || isRateLimitNotificationActive) {
+            setPreviousSessionData(null);
+            return;
+        }
+        
+        if (showNotification && previousSessionData && previousSessionData.timeLeft > 0 && !isRateLimited && !isRateLimitNotificationActive) {
             const interval = setInterval(() => {
+                // Double-check rate limiting status before updating
+                if (isRateLimited || isRateLimitNotificationActive) {
+                    setPreviousSessionData(null);
+                    setShowNotification(false);
+                    return;
+                }
+                
                 setPreviousSessionData(prev => {
                     if (prev && prev.timeLeft > 0) {
                         const newTimeLeft = prev.timeLeft - 1;
@@ -363,11 +397,20 @@ export function Sender(){
 
             return () => clearInterval(interval);
         }
-    }, [showNotification, previousSessionData, isRateLimited]);
+    }, [showNotification, previousSessionData, isRateLimited, isRateLimitNotificationActive]);
 
     // Auto-dismiss other notifications after 3 seconds (but not during rate limiting)
     useEffect(() => {
-        if (showNotification && !previousSessionData && !isRateLimited) {
+        // Block auto-dismiss when rate limited
+        if (isRateLimited || isRateLimitNotificationActive) {
+            if (autoDismissTimerRef.current) {
+                clearTimeout(autoDismissTimerRef.current);
+                autoDismissTimerRef.current = null;
+            }
+            return;
+        }
+        
+        if (showNotification && !previousSessionData && !isRateLimited && !isRateLimitNotificationActive) {
             // Clear any existing timer
             if (autoDismissTimerRef.current) {
                 clearTimeout(autoDismissTimerRef.current);
@@ -375,7 +418,10 @@ export function Sender(){
             
             // Set new timer and store reference
             autoDismissTimerRef.current = setTimeout(() => {
-                setShowNotification(false);
+                // Double-check rate limiting status before dismissing
+                if (!isRateLimited && !isRateLimitNotificationActive) {
+                    setShowNotification(false);
+                }
                 autoDismissTimerRef.current = null;
             }, 3000);
 
@@ -386,7 +432,7 @@ export function Sender(){
                 }
             };
         }
-    }, [showNotification, previousSessionData, isRateLimited]);
+    }, [showNotification, previousSessionData, isRateLimited, isRateLimitNotificationActive]);
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-0">
             <div className="flex flex-col w-full max-w-[36rem] mt-4 relative z-10">
