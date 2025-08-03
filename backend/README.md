@@ -13,9 +13,8 @@
 ## Tech Stack
 
 ### Frontend
-- HTML
-- CSS
-- JavaScript (Vanilla)
+- React with TypeScript
+- react-router-dom 
 
 ### Backend
 - Node.js
@@ -24,9 +23,9 @@
 - dotenv for environment variable management
 
 ### DevOps & Deployment
-- Railway (PaaS deployment)
-- Git & GitHub for version control
-- rate-limiting middleware for security
+- Vercel (for frontend hosting and CI/CD)
+- Railway (for backend infrastructure and environment management)
+- Other Tools: dotenv, rate-limiting middleware, tsconfig, REST API
 
 ---
 
