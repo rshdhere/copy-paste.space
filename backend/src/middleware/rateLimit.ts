@@ -7,11 +7,13 @@ export const sendRateLimiter = rateLimit({
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req, res) => {
-        const retryAfter = Math.ceil(15 * 60 / 10); // Calculate retry after time in seconds
+        // Calculate time until the next request can be made
+        // This is the time until the oldest request in the window expires
+        const retryAfter = Math.ceil(15 * 60 / 10); // 90 seconds - time until next slot opens
         res.set('Retry-After', retryAfter.toString());
         res.status(429).json({
             error: "Too many requests",
-            message: "Please wait a few minutes before trying again",
+            message: `Rate limit hit. Try again in ${retryAfter} seconds.`,
             retryAfter: retryAfter
         });
     }
@@ -24,11 +26,12 @@ export const receiveRateLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {
-        const retryAfter = Math.ceil(15 * 60 / 30); // Calculate retry after time in seconds
+        // Calculate time until the next request can be made
+        const retryAfter = Math.ceil(15 * 60 / 30); // 30 seconds - time until next slot opens
         res.set('Retry-After', retryAfter.toString());
         res.status(429).json({
             error: "Too many requests",
-            message: "Please wait a few minutes before trying again",
+            message: `Rate limit hit. Try again in ${retryAfter} seconds.`,
             retryAfter: retryAfter
         });
     }
@@ -41,11 +44,12 @@ export const generalRateLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {
-        const retryAfter = Math.ceil(15 * 60 / 100); // Calculate retry after time in seconds
+        // Calculate time until the next request can be made
+        const retryAfter = Math.ceil(15 * 60 / 100); // 9 seconds - time until next slot opens
         res.set('Retry-After', retryAfter.toString());
         res.status(429).json({
             error: "Too many requests",
-            message: "Please wait a few minutes before trying again",
+            message: `Rate limit hit. Try again in ${retryAfter} seconds.`,
             retryAfter: retryAfter
         });
     }
