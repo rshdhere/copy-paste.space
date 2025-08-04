@@ -462,6 +462,8 @@ export function Sender(){
                     {/* Text input area */}
                     <div className="flex-4 p-3 sm:p-4 pt-6 sm:pt-8 pb-2">
                         <motion.textarea
+                            id="content-textarea"
+                            name="content"
                             className={`w-full min-w-0 resize-none focus:outline-none border-none bg-transparent pt-2 pl-2 text-left placeholder:text-left [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-cyan-300 [&::-webkit-scrollbar-thumb]:cursor-pointer [&::selection]:bg-cyan-400/30 [&::selection]:text-[#00d8ff] [&::-moz-selection]:bg-cyan-400/30 [&::-moz-selection]:text-[#00d8ff] text-sm sm:text-base ${
                                 errorMessage ? 'text-red-400 placeholder-red-400' : isRateLimited ? 'text-gray-500 placeholder-gray-500' : 'text-white placeholder-gray-400'
                             }`}
