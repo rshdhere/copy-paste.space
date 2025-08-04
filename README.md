@@ -55,7 +55,7 @@ To set up and run the project on your local machine:
 
  1. **Clone the Repository**
   ```bash
-  git clone https://github.com/Stephanie322/copy-paste.space.git
+  git clone https://github.com/rshdhere/copy-paste.space.git
   cd copy-paste.space
   ```
 2. **Install Dependencies**
