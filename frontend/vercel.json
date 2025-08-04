@@ -1,5 +1,41 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/(.*)", "destination": "/" },
+    { 
+      "source": "/_x7k9m2n4_static/(.*)", 
+      "destination": "https://us.i.posthog.com/static/$1"
+    },
+    { 
+      "source": "/_x7k9m2n4/(.*)", 
+      "destination": "https://us.i.posthog.com/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/_x7k9m2n4_static/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/_x7k9m2n4/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
   ]
 }
