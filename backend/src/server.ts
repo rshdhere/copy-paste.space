@@ -5,12 +5,16 @@ import senderRouter from "./routes/sender";
 import receiverRouter from "./routes/receiver";
 import { startWarmupCron } from "./warmup-cron";
 import { generalRateLimiter } from "./middleware/rateLimit";
+import { ipBlockMiddleware } from "./middleware/ipBlock";
 
 const app = express();
 
 // Trust proxy for proper IP handling behind reverse proxy (Vercel + Railway)
 // Trust only specific proxy IPs or use 'loopback' for local development
 app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : 'loopback');
+
+// IP blocking middleware (must come before other middleware)
+app.use(ipBlockMiddleware);
 
 // for parsing user data
 app.use(express.json());
