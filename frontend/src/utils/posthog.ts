@@ -41,10 +41,10 @@ export const initializePostHog = (): void => {
 
             posthog.init(apiKey, {
                 api_host: host,
-                loaded: (posthog) => {
+                loaded: (posthogInstance) => {
                     console.log('PostHog loaded successfully');
                     // Set the distinct_id to our anonymous UUID
-                    posthog.identify(anonymousId);
+                    posthogInstance.identify(anonymousId);
                 },
                 autocapture: true,
                 capture_pageview: true,
