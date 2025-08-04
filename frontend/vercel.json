@@ -2,17 +2,17 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/" },
     { 
-      "source": "/_POSTHOG_SECURE_PATH_static/(.*)", 
+      "source": "/_x7k9m2n4_static/(.*)", 
       "destination": "https://us.i.posthog.com/static/$1"
     },
     { 
-      "source": "/_POSTHOG_SECURE_PATH/(.*)", 
+      "source": "/_x7k9m2n4/(.*)", 
       "destination": "https://us.i.posthog.com/$1"
     }
   ],
   "headers": [
     {
-      "source": "/_POSTHOG_SECURE_PATH_static/(.*)",
+      "source": "/_x7k9m2n4_static/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",
@@ -25,7 +25,7 @@
       ]
     },
     {
-      "source": "/_POSTHOG_SECURE_PATH/(.*)",
+      "source": "/_x7k9m2n4/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",
