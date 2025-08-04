@@ -399,6 +399,24 @@ export function Sender(){
         }
     }, [showNotification, previousSessionData, isRateLimited, isRateLimitNotificationActive]);
 
+    // Session timer effect - handles the countdown for the active session
+    useEffect(() => {
+        if (isTimerActive && timeLeft !== null && timeLeft > 0) {
+            const timer = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev !== null && prev > 0) {
+                        return prev - 1;
+                    } else {
+                        setIsTimerActive(false);
+                        return 0;
+                    }
+                });
+            }, 1000);
+
+            return () => clearInterval(timer);
+        }
+    }, [isTimerActive, timeLeft]);
+
     // Auto-dismiss other notifications after 3 seconds (but not during rate limiting)
     useEffect(() => {
         // Block auto-dismiss when rate limited
