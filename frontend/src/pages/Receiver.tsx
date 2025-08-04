@@ -301,6 +301,8 @@ export function Receiver(){
                     <div className="flex items-center justify-center">
                         <div className="flex items-center space-x-2 sm:space-x-3 w-full relative">
                             <input 
+                                id="otp-input"
+                                name="otp"
                                 className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 text-center border-transparent rounded-l-lg bg-transparent transition-all duration-100 ease-out focus:outline-none placeholder:text-center text-base sm:text-lg font-satoshi placeholder:font-satoshi [&::selection]:bg-cyan-400/30 [&::selection]:text-[#00d8ff] [&::-moz-selection]:bg-cyan-400/30 [&::-moz-selection]:text-[#00d8ff] ${
                                     isRateLimited ? 'text-gray-500 placeholder-gray-500' : 'text-white placeholder-gray-400'
                                 }`}
@@ -467,6 +469,8 @@ export function Receiver(){
                                 </motion.button>
                             </div>
                             <textarea
+                                id="received-content-textarea"
+                                name="receivedContent"
                                 className="w-full p-3 sm:p-4 border border-gray-400/30 rounded bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none focus:border-neutral-600 transition-colors h-48 sm:h-80 text-sm sm:text-base [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-cyan-300 [&::-webkit-scrollbar-thumb]:cursor-pointer [&::selection]:bg-cyan-400/30 [&::selection]:text-[#00d8ff] [&::-moz-selection]:bg-cyan-400/30 [&::-moz-selection]:text-[#00d8ff]"
                                 value={receivedContent}
                                 readOnly

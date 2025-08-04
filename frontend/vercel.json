@@ -1,5 +1,41 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/(.*)", "destination": "/" },
+    { 
+      "source": "/_POSTHOG_SECURE_PATH_static/(.*)", 
+      "destination": "https://us.i.posthog.com/static/$1"
+    },
+    { 
+      "source": "/_POSTHOG_SECURE_PATH/(.*)", 
+      "destination": "https://us.i.posthog.com/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/_POSTHOG_SECURE_PATH_static/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/_POSTHOG_SECURE_PATH/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
   ]
 }
