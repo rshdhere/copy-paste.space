@@ -1,8 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { initializePostHog } from "./utils/posthog";
 import { Sender } from "./pages/Sender";
 import { Receiver } from "./pages/Receiver";
 
 function App() {
+    useEffect(() => {
+        initializePostHog();
+    }, []);
+
     return (
         <BrowserRouter>
             <Routes>

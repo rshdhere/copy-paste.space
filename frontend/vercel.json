@@ -1,5 +1,23 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
+  ],
+  "routes": [
+    {
+      "src": "/_POSTHOG_SECURE_PATH_static/(.*)",
+      "dest": "https://us.i.posthog.com/static/$1",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow",
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
+      "src": "/_POSTHOG_SECURE_PATH/(.*)",
+      "dest": "https://us.i.posthog.com/$1",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow",
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      }
+    }
   ]
 }
