@@ -44,7 +44,7 @@ Thank you for your interest in contributing to **copy-paste.space**! This docume
    ```
 3. Add the original repository as upstream:
    ```bash
-   git remote add upstream https://github.com/Stephanie322/copy-paste.space.git
+   git remote add upstream https://github.com/rshdhere/copy-paste.space.git
    ```
 
 ## Development Setup
