@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Timer } from "../components/Timer";
 import { Feature } from "../assets/icons/Feature";
@@ -12,6 +13,7 @@ const backend_url = import.meta.env.VITE_BACKEND_URI;
 const MAX_PAYLOAD_SIZE = 10000;
 
 export function Sender(){
+    const navigate = useNavigate();
 
     const [content, setContent] = useState("");
     const [code, setCode] = useState<string | null>(null);
@@ -399,6 +401,24 @@ export function Sender(){
         }
     }, [showNotification, previousSessionData, isRateLimited, isRateLimitNotificationActive]);
 
+    // Session timer effect - handles the countdown for the active session
+    useEffect(() => {
+        if (isTimerActive && timeLeft !== null && timeLeft > 0) {
+            const timer = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev !== null && prev > 0) {
+                        return prev - 1;
+                    } else {
+                        setIsTimerActive(false);
+                        return 0;
+                    }
+                });
+            }, 1000);
+
+            return () => clearInterval(timer);
+        }
+    }, [isTimerActive, timeLeft]);
+
     // Auto-dismiss other notifications after 3 seconds (but not during rate limiting)
     useEffect(() => {
         // Block auto-dismiss when rate limited
@@ -435,6 +455,64 @@ export function Sender(){
     }, [showNotification, previousSessionData, isRateLimited, isRateLimitNotificationActive]);
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-0">
+            {/* Navigation button to receive page */}
+            <motion.button
+                onClick={() => navigate('/receive')}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-2 px-3 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 rounded-lg text-white text-sm font-medium cursor-pointer backdrop-blur-sm"
+                initial={{ opacity: 0, y: -20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                    type: "spring", 
+                    stiffness: 300, 
+                    damping: 25,
+                    delay: 0.2
+                }}
+                whileHover={{ 
+                    scale: 1.1, 
+                    boxShadow: "0 10px 25px rgba(0, 216, 255, 0.3)",
+                    borderColor: "rgba(0, 216, 255, 0.8)"
+                }}
+                whileTap={{ 
+                    scale: 0.95, 
+                    y: 0,
+                    transition: { duration: 0.1 }
+                }}
+                title="Go to Receive Page"
+            >
+                <motion.svg 
+                    className="w-4 h-4" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                    initial={{ rotate: -10 }}
+                    animate={{ rotate: 0 }}
+                    transition={{ 
+                        type: "spring", 
+                        stiffness: 400, 
+                        damping: 20,
+                        delay: 0.4
+                    }}
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </motion.svg>
+                <motion.span 
+                    className="hidden sm:inline"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ 
+                        type: "spring", 
+                        stiffness: 300, 
+                        damping: 25,
+                        delay: 0.6
+                    }}
+                    whileHover={{ 
+                        color: "rgb(0, 216, 255)"
+                    }}
+                >
+                    Receive
+                </motion.span>
+            </motion.button>
+            
             <div className="flex flex-col w-full max-w-[36rem] mt-4 relative z-10">
                 {/* Textarea container */}
                 <div className="flex flex-col w-full bg-[#2A2A2A] rounded-lg shadow-lg overflow-hidden relative border border-neutral-600">
