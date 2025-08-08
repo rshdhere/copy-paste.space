@@ -65,21 +65,23 @@ export function Sender(){
         if (isRateLimited && rateLimitCooldown > 0) {
             let prev = rateLimitCooldown;
             rateLimitTimerRef.current = setInterval(() => {
-                prev = prev - 1;
-                if (prev <= 0) {
+                if (prev <= 1) {
                     dispatch(setIsRateLimited(false));
                     dispatch(setIsRateLimitNotificationActive(false));
                     // Clear localStorage when timer finishes
                     localStorage.removeItem('senderRateLimit');
+                    prev = 0;
                     dispatch(setRateLimitCooldown(0));
                 }
                 else {
+                    const newValue = prev - 1;
                     // Update localStorage with new countdown value
                     localStorage.setItem('senderRateLimit', JSON.stringify({
                         timestamp: Date.now(),
                         cooldown: prev
                     }));
-                    dispatch(setRateLimitCooldown(prev));
+                    prev = newValue;
+                    dispatch(setRateLimitCooldown(newValue));
                 }
             }, 1000);
 

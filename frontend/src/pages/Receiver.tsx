@@ -250,6 +250,7 @@ export function Receiver(){
                     dispatch(setIsRateLimited(false));
                     // Clear localStorage when timer finishes
                     localStorage.removeItem('receiverRateLimit');
+                    prev = 0;
                     dispatch(setRateLimitCooldown(0));
                 } else {
                     const newValue = prev - 1;
