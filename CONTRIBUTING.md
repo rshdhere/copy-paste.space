@@ -287,6 +287,10 @@ Currently, the project doesn't have automated tests, but you should:
 
 4. Submit the pull request
 
+5. We do have a preview branch so **do-not raise a ticket directly to main**, instead always to preview.
+
+6. All PRs to main will be rejected as we should follow good-practices
+
 ### Pull Request Guidelines
 
 - Keep pull requests focused on a single feature or fix
