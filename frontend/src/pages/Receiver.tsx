@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef} from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../components/Button";
@@ -6,22 +6,35 @@ import { ProgressRing } from "../components/ProgressRing";
 import { Feature } from "../assets/icons/Feature";
 import { Notification } from "../components/Notification";
 import { detectNetworkError, getOptimalTimeout, checkBackendStatus } from "../utils/networkUtils";
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../store/store';
+import {
+  setOtp,
+  setReceivedContent,
+  setCopied,
+  setPlaceholder,
+  setAnimationState,
+  setNotification,
+  setIsRateLimited,
+  setRateLimitCooldown,
+} from '../store/receiverSlice';
+
 const backend_url = import.meta.env.VITE_BACKEND_URI;
 
 export function Receiver(){
+    const dispatch = useDispatch<AppDispatch>();
 
-    const [otp, setOtp] = useState('');
-    const [receivedContent, setReceivedContent] = useState<string | null>(null);
-    const [copied, setCopied] = useState(false);
-    const [placeholder, setPlaceholder] = useState('');
-    const [animationState, setAnimationState] = useState<'expanding' | 'expanded' | 'complete'>('expanding');
-    const [notification, setNotification] = useState<{ isVisible: boolean; message: string; type: "error" | "warning" | "success" | "guide" }>({
-        isVisible: false,
-        message: "",
-        type: "error"
-    });
-    const [isRateLimited, setIsRateLimited] = useState(false);
-    const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
+    const {
+        otp,
+        receivedContent,
+        copied,
+        placeholder,
+        animationState,
+        notification,
+        isRateLimited,
+        rateLimitCooldown,
+    } = useSelector((state: RootState) => state.receiver);
+
     const otpRef = useRef<HTMLInputElement>(null);
     const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -34,9 +47,9 @@ export function Receiver(){
     useEffect(() => {
         const updatePlaceholder = () => {
             if (window.innerWidth < 640) { // sm breakpoint
-                setPlaceholder('enter the one-time-password');
+                dispatch(setPlaceholder('enter the one-time-password'));
             } else {
-                setPlaceholder('enter the verification-code / one-time-password');
+                dispatch(setPlaceholder('enter the verification-code / one-time-password'));
             }
         };
 
@@ -44,23 +57,23 @@ export function Receiver(){
         window.addEventListener('resize', updatePlaceholder);
         
         return () => window.removeEventListener('resize', updatePlaceholder);
-    }, []);
+    }, [dispatch]);
 
     // Animation sequence
     useEffect(() => {
         const timer1 = setTimeout(() => {
-            setAnimationState('expanded');
+            dispatch(setAnimationState('expanded'));
         }, 600);
 
         const timer2 = setTimeout(() => {
-            setAnimationState('complete');
+            dispatch(setAnimationState('complete'));
         }, 1200);
 
         return () => {
             clearTimeout(timer1);
             clearTimeout(timer2);
         };
-    }, []);
+    }, [dispatch]);
 
     // Backend health check on component mount
     useEffect(() => {
@@ -75,31 +88,31 @@ export function Receiver(){
                     const isNetworkIssue = await checkBackendStatus();
                     if (!isNetworkIssue) {
                         // If we can reach internet but not backend, it's backend down
-                        setNotification({
+                        dispatch(setNotification({
                             isVisible: true,
                             message: "Backend Is Down\nWe are on it, please try again later",
                             type: "error"
-                        });
+                        }));
                     } else {
                         // It's a network issue
-                        setNotification({
+                        dispatch(setNotification({
                             isVisible: true,
                             message: errorInfo.message,
                             type: errorInfo.type
-                        });
+                        }));
                     }
                 } else {
-                    setNotification({
+                    dispatch(setNotification({
                         isVisible: true,
                         message: errorInfo.message,
                         type: errorInfo.type
-                    });
+                    }));
                 }
             }
         };
 
         checkBackendHealth();
-    }, []);
+    }, [dispatch]);
 
     async function OTPChecker(){
         if(otpRef.current){
@@ -107,16 +120,16 @@ export function Receiver(){
             
             // Check if the OTP is empty or only whitespace
             if (!value) {
-                setNotification({
+                dispatch(setNotification({
                     isVisible: true,
                     message: "Please enter an OTP to receive content!",
                     type: "error"
-                });
+                }));
                 otpRef.current.focus();
                 return;
             }
             
-            setOtp(value);
+            dispatch(setOtp(value));
             
             try{
                 const response = await axios.get(`${backend_url}/api/v1/user/receive`, {
@@ -127,14 +140,14 @@ export function Receiver(){
                 // setOtp("");
                 const dataArr = response.data?.data;
                 if (Array.isArray(dataArr) && dataArr.length > 0) {
-                    setReceivedContent(dataArr[0].content);
+                    dispatch(setReceivedContent(dataArr[0].content));
                 } else {
-                    setNotification({
+                    dispatch(setNotification({
                         isVisible: true,
                         message: "Wrong OTP",
                         type: "error"
-                    });
-                    setReceivedContent(null); // Clear any previous content
+                    }));
+                    dispatch(setReceivedContent(null)); // Clear any previous content
                 }
             } catch(error) {
                 console.error("Failed to fetch content:", error);
@@ -144,33 +157,33 @@ export function Receiver(){
                 if (axiosError.response?.status === 429) {
                     const errorInfo = detectNetworkError(error);
                     const retrySeconds = errorInfo.retryAfter || 90; // Use backend retry time or default to 90 seconds
-                    setIsRateLimited(true);
-                    setRateLimitCooldown(retrySeconds);
+                    dispatch(setIsRateLimited(true));
+                    dispatch(setRateLimitCooldown(retrySeconds));
                     // Save rate limit state to localStorage
                     localStorage.setItem('receiverRateLimit', JSON.stringify({
                         timestamp: Date.now(),
                         cooldown: retrySeconds
                     }));
                     // Clear any existing notifications and show rate limit notification
-                    setNotification(prev => ({ ...prev, isVisible: false }));
+                    dispatch(setNotification({ ...notification, isVisible: false }));
                     setTimeout(() => {
-                        setNotification({
+                        dispatch(setNotification({
                             isVisible: true,
                             message: errorInfo.message,
                             type: errorInfo.type
-                        });
+                        }));
                     }, 100);
-                    setReceivedContent(null);
+                    dispatch(setReceivedContent(null));
                     return;
                 }
                 
                 // Check if it's a 404 error (wrong OTP or expired session)
                 if (axiosError.response?.status === 404) {
-                    setNotification({
+                    dispatch(setNotification({
                         isVisible: true,
                         message: "Wrong OTP\nCode doesn't match or session expired",
                         type: "error"
-                    });
+                    }));
                 } else {
                     const errorInfo = detectNetworkError(error);
                     
@@ -179,28 +192,28 @@ export function Receiver(){
                         const isNetworkIssue = await checkBackendStatus();
                         if (!isNetworkIssue) {
                             // If we can reach internet but not backend, it's backend down
-                            setNotification({
+                            dispatch(setNotification({
                                 isVisible: true,
                                 message: "Backend Is Down\nWe are on it, please try again later",
                                 type: "error"
-                            });
+                            }));
                         } else {
                             // It's a network issue
-                            setNotification({
+                            dispatch(setNotification({
                                 isVisible: true,
                                 message: errorInfo.message,
                                 type: errorInfo.type
-                            });
+                            }));
                         }
                     } else {
-                        setNotification({
+                        dispatch(setNotification({
                             isVisible: true,
                             message: errorInfo.message,
                             type: errorInfo.type
-                        });
+                        }));
                     }
                 }
-                setReceivedContent(null); // Clear any previous content
+                dispatch(setReceivedContent(null)); // Clear any previous content
             }
         }
     }
@@ -215,7 +228,7 @@ export function Receiver(){
             
             // Set new timer and store reference
             autoDismissTimerRef.current = setTimeout(() => {
-                setNotification(prev => ({ ...prev, isVisible: false }));
+                dispatch(setNotification({ ...notification, isVisible: false }));
                 autoDismissTimerRef.current = null;
             }, 3000);
 
@@ -226,27 +239,28 @@ export function Receiver(){
                 }
             };
         }
-    }, [notification.isVisible, isRateLimited]);
+    }, [notification, isRateLimited, dispatch]);
 
     // Rate limiting cooldown timer
     useEffect(() => {
         if (isRateLimited && rateLimitCooldown > 0) {
+            let prev = rateLimitCooldown;
             rateLimitTimerRef.current = setInterval(() => {
-                setRateLimitCooldown(prev => {
-                    if (prev <= 1) {
-                        setIsRateLimited(false);
-                        // Clear localStorage when timer finishes
-                        localStorage.removeItem('receiverRateLimit');
-                        return 0;
-                    }
+                if (prev <= 1) {
+                    dispatch(setIsRateLimited(false));
+                    // Clear localStorage when timer finishes
+                    localStorage.removeItem('receiverRateLimit');
+                    dispatch(setRateLimitCooldown(0));
+                } else {
                     const newValue = prev - 1;
                     // Update localStorage with new countdown value
                     localStorage.setItem('receiverRateLimit', JSON.stringify({
                         timestamp: Date.now(),
                         cooldown: newValue
                     }));
-                    return newValue;
-                });
+                    dispatch(setRateLimitCooldown(newValue));
+                    prev = newValue
+                }
             }, 1000);
 
             return () => {
@@ -255,7 +269,7 @@ export function Receiver(){
                 }
             };
         }
-    }, [isRateLimited, rateLimitCooldown]);
+    }, [isRateLimited, rateLimitCooldown, dispatch]);
 
     // Check for existing rate limit on component mount
     useEffect(() => {
@@ -267,8 +281,8 @@ export function Receiver(){
                 const remaining = Math.max(0, cooldown - elapsed);
                 
                 if (remaining > 0) {
-                    setIsRateLimited(true);
-                    setRateLimitCooldown(remaining);
+                    dispatch(setIsRateLimited(true));
+                    dispatch(setRateLimitCooldown(remaining));
                 } else {
                     // Clear expired rate limit
                     localStorage.removeItem('receiverRateLimit');
@@ -278,7 +292,7 @@ export function Receiver(){
                 localStorage.removeItem('receiverRateLimit');
             }
         }
-    }, []);
+    }, [dispatch]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-6 lg:px-8">
@@ -313,9 +327,9 @@ export function Receiver(){
                                 spellCheck={false}
                                 disabled={isRateLimited}
                                 onChange={e => {
-                                    setOtp(e.target.value);
+                                    dispatch(setOtp(e.target.value));
                                     if (notification.isVisible && !isRateLimited) {
-                                        setNotification(prev => ({ ...prev, isVisible: false }));
+                                        dispatch(setNotification({ ...notification, isVisible: false }));
                                     }
                                 }}
                                 onKeyDown={e => {
@@ -381,7 +395,7 @@ export function Receiver(){
                             clearTimeout(autoDismissTimerRef.current);
                             autoDismissTimerRef.current = null;
                         }
-                        setNotification(prev => ({ ...prev, isVisible: false }));
+                        dispatch(setNotification({ ...notification, isVisible: false }));
                     }}
                 />
                 
@@ -420,8 +434,8 @@ export function Receiver(){
                                 <motion.button 
                                     onClick={() => {
                                         navigator.clipboard.writeText(receivedContent);
-                                        setCopied(true);
-                                        setTimeout(() => setCopied(false), 2000);
+                                        dispatch(setCopied(true));
+                                        setTimeout(() => dispatch(setCopied(false)), 2000);
                                     }}
                                     className="text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer p-1.5 sm:p-2 rounded-lg hover:bg-white/5"
                                     title="Copy to clipboard"
