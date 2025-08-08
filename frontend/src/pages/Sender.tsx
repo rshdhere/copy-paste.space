@@ -453,6 +453,37 @@ export function Sender(){
             };
         }
     }, [showNotification, previousSessionData, isRateLimited, isRateLimitNotificationActive]);
+
+    
+    // This component sends a secure POST request to the backend API
+    // using access key to prevent unauthorized access (e.g., Postman, curl)
+    const FRONTEND_SECRET_KEY = import.meta.env.VITE_FRONTEND_SECRET_KEY;
+    useEffect(()=>{
+        const sender = async() => {
+            try{
+                const response = await fetch('https://your-api.com/api/send',{
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Key': FRONTEND_SECRET_KEY,
+                    },
+                });
+
+                if (!response.ok) {
+                    console.error('Error:', response.status, await response.json());
+                    return;
+                }
+
+                const data = await response.json()
+                console.log('Send Response:', data)
+            }
+            catch(error){
+                console.error('Network error or CORS issue:', error)
+            }
+        }
+        sender()
+    } , []);
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-0">
             {/* Navigation button to receive page */}

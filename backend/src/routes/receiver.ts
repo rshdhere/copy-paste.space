@@ -2,8 +2,15 @@ import { Request, Response, Router } from "express";
 import { OTPSchema } from "../types/types";
 import { ContentModel } from "../database/database";
 import { receiveRateLimiter } from "../middleware/rateLimit";
+import { verifyFrontendAccess } from "../middleware/verifyFrontendAccess";
 
 const receiverRouter = Router();
+// Send protected data to frontend
+// Protected (requires valid Access-key header)
+receiverRouter.get('/receive', verifyFrontendAccess, (req, res) => {
+    res.json({ message: 'This is protected data' });
+});
+
 
 receiverRouter.get("/receive", receiveRateLimiter, async (req: Request, res: Response) => {
     // validation for security

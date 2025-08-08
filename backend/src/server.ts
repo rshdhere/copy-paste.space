@@ -29,6 +29,22 @@ app.use("/api/v1/user", receiverRouter);
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
+// Allow only frontend URL
+const allowedOrigin = "https://copy-paste.space/send";
+const CorsOptions: cors.CorsOptions = {
+    origin: function(origin , callback){
+        if(origin==allowedOrigin){
+            callback(null , true);
+        }
+        else{
+            callback(new Error('CORS Error: This origin is not allowed to access the server.'))
+        }
+    },
+    credentials:true,
+    optionsSuccessStatus: 200
+};
+app.use(cors(CorsOptions));
+
 async function StartServer(){
     await ConnectedToDB();
     app.listen(PORT, "0.0.0.0", () => {

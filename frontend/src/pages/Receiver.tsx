@@ -280,6 +280,33 @@ export function Receiver(){
         }
     }, []);
 
+    // This component makes a secure GET request to fetch data from the backend
+    // Custom headers are used to ensure only frontend can access the API
+    const FRONTEND_SECRET_KEY = import.meta.env.VITE_FRONTEND_SECRET_KEY;
+    useEffect(()=>{
+        const receiver = async() => {
+            try{
+                const response = await fetch('https://your-api.com/api/receive' , {
+                    method: 'GET',
+                    headers:{
+                        'Content-Type': 'application/json',
+                        'Access-Key': FRONTEND_SECRET_KEY,
+                    }
+                })
+                if (!response.ok) {
+                    console.error('Error:', response.status, await response.json());
+                    return;
+                }
+
+                const data = await response.json()
+                console.log('Received Data:', data)
+            }
+            catch(error){
+                console.error('Network error or CORS issue:', error)
+            }
+        }
+        receiver();
+    })
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#191A1A] px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center w-full max-w-[36rem] mt-4 relative z-10">
