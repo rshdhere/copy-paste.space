@@ -133,6 +133,7 @@ online-clipboard/
 │   ├── src/
 │   │   ├── components/     # React components
 │   │   ├── pages/          # Page components
+│   │   ├── store/          # Redux components
 │   │   ├── utils/          # Utility functions
 │   │   ├── assets/         # Static assets
 │   │   └── main.tsx        # Application entry point
