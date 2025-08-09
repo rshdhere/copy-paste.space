@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef} from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,27 @@ import { Timer } from "../components/Timer";
 import { Feature } from "../assets/icons/Feature";
 import { Notification } from "../components/Notification";
 import { detectNetworkError, getOptimalTimeout, checkBackendStatus } from "../utils/networkUtils";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "../store/store";
+import {
+    setContent,
+    setCode,
+    setCopied,
+    setErrorMessage,
+    setTimeLeft,
+    setIsTimerActive,
+    setHintHighlight,
+    setShowNotification,
+    setNotificationMessage,
+    setNotificationType,
+    setTextareaHeight,
+    setPreviousSessionData,
+    setIsPayloadTooLarge,
+    setIsRateLimited,
+    setRateLimitCooldown,
+    setIsRateLimitNotificationActive,
+} from "../store/senderSlice";
+
 const backend_url = import.meta.env.VITE_BACKEND_URI;
 
 // Maximum payload size in characters (matching backend limit)
@@ -14,23 +35,27 @@ const MAX_PAYLOAD_SIZE = 10000;
 
 export function Sender(){
     const navigate = useNavigate();
+    const dispatch = useDispatch<AppDispatch>();
 
-    const [content, setContent] = useState("");
-    const [code, setCode] = useState<string | null>(null);
-    const [copied, setCopied] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
-    const [timeLeft, setTimeLeft] = useState<number | null>(null);
-    const [isTimerActive, setIsTimerActive] = useState(false);
-    const [hintHighlight, setHintHighlight] = useState(false);
-    const [showNotification, setShowNotification] = useState(false);
-    const [notificationMessage, setNotificationMessage] = useState("");
-    const [notificationType, setNotificationType] = useState<"error" | "warning" | "success" | "guide">("error");
-    const [textareaHeight, setTextareaHeight] = useState(48); // Default height
-    const [previousSessionData, setPreviousSessionData] = useState<{ code: string; timeLeft: number } | null>(null);
-    const [isPayloadTooLarge, setIsPayloadTooLarge] = useState(false);
-    const [isRateLimited, setIsRateLimited] = useState(false);
-    const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
-    const [isRateLimitNotificationActive, setIsRateLimitNotificationActive] = useState(false);
+    const {
+        content,
+        code,
+        copied,
+        errorMessage,
+        timeLeft,
+        isTimerActive,
+        hintHighlight,
+        showNotification,
+        notificationMessage,
+        notificationType,
+        textareaHeight,
+        previousSessionData,
+        isPayloadTooLarge,
+        isRateLimited,
+        rateLimitCooldown,
+        isRateLimitNotificationActive,
+    } = useSelector((state: RootState) => state.sender);
+
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -38,23 +63,26 @@ export function Sender(){
     // Rate limiting cooldown timer
     useEffect(() => {
         if (isRateLimited && rateLimitCooldown > 0) {
+            let prev = rateLimitCooldown;
             rateLimitTimerRef.current = setInterval(() => {
-                setRateLimitCooldown(prev => {
-                    if (prev <= 1) {
-                        setIsRateLimited(false);
-                        setIsRateLimitNotificationActive(false);
-                        // Clear localStorage when timer finishes
-                        localStorage.removeItem('senderRateLimit');
-                        return 0;
-                    }
+                if (prev <= 1) {
+                    dispatch(setIsRateLimited(false));
+                    dispatch(setIsRateLimitNotificationActive(false));
+                    // Clear localStorage when timer finishes
+                    localStorage.removeItem('senderRateLimit');
+                    prev = 0;
+                    dispatch(setRateLimitCooldown(0));
+                }
+                else {
                     const newValue = prev - 1;
                     // Update localStorage with new countdown value
                     localStorage.setItem('senderRateLimit', JSON.stringify({
                         timestamp: Date.now(),
-                        cooldown: newValue
+                        cooldown: prev
                     }));
-                    return newValue;
-                });
+                    prev = newValue;
+                    dispatch(setRateLimitCooldown(newValue));
+                }
             }, 1000);
 
             return () => {
@@ -63,7 +91,7 @@ export function Sender(){
                 }
             };
         }
-    }, [isRateLimited, rateLimitCooldown]);
+    }, [isRateLimited, rateLimitCooldown, dispatch]);
 
     // Check for existing rate limit on component mount
     useEffect(() => {
@@ -75,8 +103,8 @@ export function Sender(){
                 const remaining = Math.max(0, cooldown - elapsed);
                 
                 if (remaining > 0) {
-                    setIsRateLimited(true);
-                    setRateLimitCooldown(remaining);
+                    dispatch(setIsRateLimited(true));
+                    dispatch(setRateLimitCooldown(remaining));
                 } else {
                     // Clear expired rate limit
                     localStorage.removeItem('senderRateLimit');
@@ -86,36 +114,37 @@ export function Sender(){
                 localStorage.removeItem('senderRateLimit');
             }
         }
-    }, []);
+    }, [dispatch]);
 
     // Check payload size whenever content changes
     useEffect(() => {
         const isTooLarge = content.length > MAX_PAYLOAD_SIZE;
-        setIsPayloadTooLarge(isTooLarge);
+        dispatch(setIsPayloadTooLarge(isTooLarge));
         
         // Show notification when payload becomes too large (only once) - but not during rate limiting
         if (isTooLarge && !showNotification && !isRateLimited && !isRateLimitNotificationActive) {
-            setNotificationMessage("Content Limit Exceeded\nPlease reduce your content to proceed");
-            setNotificationType("warning");
-            setShowNotification(true);
+            dispatch(setNotificationMessage("Content Limit Exceeded\nPlease reduce your content to proceed"));
+            dispatch(setNotificationType("warning"));
+            dispatch(setShowNotification(true));
         }
-    }, [content, showNotification, isRateLimited, isRateLimitNotificationActive]);
+    }, [content, showNotification, isRateLimited, isRateLimitNotificationActive, dispatch]);
 
     // Timer effect
     useEffect(() => {
         let interval: ReturnType<typeof setInterval> | null = null;
         
         if (isTimerActive && timeLeft !== null && timeLeft > 0) {
+            let prev = timeLeft;
             interval = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev !== null && prev > 0) {
-                        return prev - 1;
-                    } else {
-                        setIsTimerActive(false);
-                        setCode(null); // Reset OTP when timer expires
-                        return null;
-                    }
-                });
+                if (prev !== null && prev > 0) {
+                    prev = prev - 1;
+                    dispatch(setTimeLeft(prev));
+                } else {
+                    dispatch(setIsTimerActive(false));
+                    dispatch(setCode(null));
+                    prev = 0;
+                    dispatch(setTimeLeft(null));
+                }
             }, 1000);
         }
 
@@ -124,7 +153,7 @@ export function Sender(){
                 clearInterval(interval);
             }
         };
-    }, [isTimerActive, timeLeft]);
+    }, [isTimerActive, timeLeft, dispatch]);
 
     // Backend health check on component mount
     useEffect(() => {
@@ -139,20 +168,20 @@ export function Sender(){
                     const isNetworkIssue = await checkBackendStatus();
                     if (!isNetworkIssue) {
                         // If we can reach internet but not backend, it's backend down
-                        setNotificationMessage("Backend Is Down\nWe are on it, please try again later");
-                        setNotificationType("error");
+                        dispatch(setNotificationMessage("Backend Is Down\nWe are on it, please try again later"));
+                        dispatch(setNotificationType("error"));
                     } else {
                         // It's a network issue
-                        setNotificationMessage(errorInfo.message);
-                        setNotificationType(errorInfo.type);
+                        dispatch(setNotificationMessage(errorInfo.message));
+                        dispatch(setNotificationType(errorInfo.type));
                     }
                 } else {
-                    setNotificationMessage(errorInfo.message);
-                    setNotificationType(errorInfo.type);
+                    dispatch(setNotificationMessage(errorInfo.message));
+                    dispatch(setNotificationType(errorInfo.type));
                 }
                 // Only show notification if not in rate limit mode
                 if (!isRateLimitNotificationActive) {
-                    setShowNotification(true);
+                    dispatch(setShowNotification(true));
                 }
             }
         };
@@ -161,25 +190,25 @@ export function Sender(){
         if (!isRateLimited && !isRateLimitNotificationActive) {
             checkBackendHealth();
         }
-    }, [isRateLimited, isRateLimitNotificationActive]);
+    }, [isRateLimited, isRateLimitNotificationActive, dispatch]);
 
     const startTimer = () => {
-        setTimeLeft(120);
-        setIsTimerActive(true);
+        dispatch(setTimeLeft(120));
+        dispatch(setIsTimerActive(true));
     };
 
     const clearContent = () => {
         if (!isRateLimited && !isRateLimitNotificationActive) {
-            setNotificationMessage("Ctrl + A and Backspace");
-            setNotificationType("guide");
-            setShowNotification(true);
+            dispatch(setNotificationMessage("Ctrl + A and Backspace"));
+            dispatch(setNotificationType("guide"));
+            dispatch(setShowNotification(true));
         }
     };
 
     const handleIconClick = () => {
         if (!isRateLimited && !isRateLimitNotificationActive) {
-            setHintHighlight(true);
-            setTimeout(() => setHintHighlight(false), 2000);
+            dispatch(setHintHighlight(true));
+            setTimeout(() => dispatch(setHintHighlight(false)), 2000);
         }
     };
 
@@ -218,7 +247,7 @@ export function Sender(){
             }
             
             // Update the height state for smooth animation
-            setTextareaHeight(targetHeight);
+            dispatch(setTextareaHeight(targetHeight));
             
             // Update classes for scrollbar
             if (needsScrollbar) {
@@ -229,7 +258,7 @@ export function Sender(){
                 textarea.classList.remove('overflow-y-auto');
             }
         }
-    }, [content]);
+    }, [content, dispatch]);
 
     async function SaveContent() {
         if (textareaRef.current) {
@@ -237,21 +266,21 @@ export function Sender(){
             
             // Check if the content is empty or only whitespace
             if (!value) {
-                setErrorMessage("Please enter some content before sending!");
+                dispatch(setErrorMessage("Please enter some content before sending!"));
                 textareaRef.current.focus();
                 return;
             }
             
             // Check if payload is too large
             if (value.length > MAX_PAYLOAD_SIZE) {
-                setNotificationMessage("Too much data! Please reduce your content.");
-                setNotificationType("warning");
-                setShowNotification(true);
+                dispatch(setNotificationMessage("Too much data! Please reduce your content."));
+                dispatch(setNotificationType("warning"));
+                dispatch(setShowNotification(true));
                 return;
             }
             
-            setErrorMessage(""); // Clear any previous error message
-            setContent(value);
+            dispatch(setErrorMessage("")); // Clear any previous error message
+            dispatch(setContent(value));
             
             // Check if there's already an active session
             const hasActiveSession = isTimerActive && timeLeft !== null && timeLeft > 0;
@@ -273,15 +302,15 @@ export function Sender(){
                         return `${mins}:${secs.toString().padStart(2, '0')}`;
                     };
                     
-                    setPreviousSessionData({ code: previousCode, timeLeft: previousTimeLeft });
-                    setNotificationMessage(`Previous session: ${previousCode} (${formatTime(previousTimeLeft)} left)`);
-                    setNotificationType("guide");
-                    setShowNotification(true);
+                    dispatch(setPreviousSessionData({ code: previousCode, timeLeft: previousTimeLeft }));
+                    dispatch(setNotificationMessage(`Previous session: ${previousCode} (${formatTime(previousTimeLeft)} left)`));
+                    dispatch(setNotificationType("guide"));
+                    dispatch(setShowNotification(true));
                 }
                 
                 // Start new session after showing notification
                 startTimer();
-                setCode(newCode);
+                dispatch(setCode(newCode));
             } catch (error) {
                 console.error("Failed to send content:", error);
                 
@@ -291,17 +320,17 @@ export function Sender(){
                 const axiosError = error as { response?: { status?: number } };
                 if (axiosError.response?.status === 429) {
                     const retrySeconds = errorInfo.retryAfter || 90; // Use backend retry time or default to 90 seconds
-                    setIsRateLimited(true);
-                    setRateLimitCooldown(retrySeconds);
-                    setIsRateLimitNotificationActive(true);
+                    dispatch(setIsRateLimited(true));
+                    dispatch(setRateLimitCooldown(retrySeconds));
+                    dispatch(setIsRateLimitNotificationActive(true));
                     // Save rate limit state to localStorage
                     localStorage.setItem('senderRateLimit', JSON.stringify({
                         timestamp: Date.now(),
                         cooldown: retrySeconds
                     }));
                     // Clear ALL existing notifications including previous session data
-                    setShowNotification(false);
-                    setPreviousSessionData(null);
+                    dispatch(setShowNotification(false));
+                    dispatch(setPreviousSessionData(null));
                     // Clear any existing timers
                     if (autoDismissTimerRef.current) {
                         clearTimeout(autoDismissTimerRef.current);
@@ -313,9 +342,9 @@ export function Sender(){
                         rateLimitTimerRef.current = null;
                     }
                     setTimeout(() => {
-                        setNotificationMessage(errorInfo.message);
-                        setNotificationType(errorInfo.type);
-                        setShowNotification(true);
+                        dispatch(setNotificationMessage(errorInfo.message));
+                        dispatch(setNotificationType(errorInfo.type));
+                        dispatch(setShowNotification(true));
                     }, 100);
                     return;
                 }
@@ -325,18 +354,18 @@ export function Sender(){
                     const isNetworkIssue = await checkBackendStatus();
                     if (!isNetworkIssue) {
                         // If we can reach internet but not backend, it's backend down
-                        setNotificationMessage("Backend Is Down\nWe are on it, please try again later");
-                        setNotificationType("error");
+                        dispatch(setNotificationMessage("Backend Is Down\nWe are on it, please try again later"));
+                        dispatch(setNotificationType("error"));
                     } else {
                         // It's a network issue
-                        setNotificationMessage(errorInfo.message);
-                        setNotificationType(errorInfo.type);
+                        dispatch(setNotificationMessage(errorInfo.message));
+                        dispatch(setNotificationType(errorInfo.type));
                     }
                 } else {
-                    setNotificationMessage(errorInfo.message);
-                    setNotificationType(errorInfo.type);
+                    dispatch(setNotificationMessage(errorInfo.message));
+                    dispatch(setNotificationType(errorInfo.type));
                 }
-                setShowNotification(true);
+                dispatch(setShowNotification(true));
             }
         }
     }
@@ -352,72 +381,77 @@ export function Sender(){
             clearTimeout(autoDismissTimerRef.current);
             autoDismissTimerRef.current = null;
         }
-        setShowNotification(false);
+        dispatch(setShowNotification(false));
     };
 
     // Real-time countdown for previous session notification (but not during rate limiting)
     useEffect(() => {
         // Block any previous session notifications when rate limited
         if (isRateLimited || isRateLimitNotificationActive) {
-            setPreviousSessionData(null);
+            dispatch(setPreviousSessionData(null));
             return;
         }
         
         if (showNotification && previousSessionData && previousSessionData.timeLeft > 0 && !isRateLimited && !isRateLimitNotificationActive) {
+            let prev = previousSessionData;
             const interval = setInterval(() => {
                 // Double-check rate limiting status before updating
                 if (isRateLimited || isRateLimitNotificationActive) {
-                    setPreviousSessionData(null);
-                    setShowNotification(false);
+                    dispatch(setPreviousSessionData(null));
+                    dispatch(setShowNotification(false));
+                    clearInterval(interval);
                     return;
                 }
                 
-                setPreviousSessionData(prev => {
-                    if (prev && prev.timeLeft > 0) {
-                        const newTimeLeft = prev.timeLeft - 1;
+                if (prev && prev.timeLeft > 0) {
+                    const newTimeLeft = prev.timeLeft - 1;
                         
-                        // Update notification message with real-time countdown
-                        const formatTime = (seconds: number): string => {
-                            const mins = Math.floor(seconds / 60);
-                            const secs = seconds % 60;
-                            return `${mins}:${secs.toString().padStart(2, '0')}`;
-                        };
+                    // Update notification message with real-time countdown
+                    const formatTime = (seconds: number): string => {
+                        const mins = Math.floor(seconds / 60);
+                        const secs = seconds % 60;
+                        return `${mins}:${secs.toString().padStart(2, '0')}`;
+                    };
+                    
+                    dispatch(setNotificationMessage(`Previous session: ${prev.code} (${formatTime(newTimeLeft)} left)`));
                         
-                        setNotificationMessage(`Previous session: ${prev.code} (${formatTime(newTimeLeft)} left)`);
-                        
-                        // Dismiss notification when timer reaches zero
-                        if (newTimeLeft <= 0) {
-                            setShowNotification(false);
-                            return null;
-                        }
-                        
-                        return { ...prev, timeLeft: newTimeLeft };
+                    // Dismiss notification when timer reaches zero
+                    if (newTimeLeft <= 0) {
+                        dispatch(setShowNotification(false));
+                        dispatch(setPreviousSessionData(null));
+                        clearInterval(interval);
                     }
-                    return prev;
-                });
+                    else {
+                        dispatch(setPreviousSessionData({ ...prev, timeLeft: newTimeLeft }));
+                        prev = { ...prev, timeLeft: newTimeLeft };
+                    }
+                }
+                else {
+                    dispatch(setPreviousSessionData(prev));
+                };
             }, 1000);
 
             return () => clearInterval(interval);
         }
-    }, [showNotification, previousSessionData, isRateLimited, isRateLimitNotificationActive]);
+    }, [showNotification, previousSessionData, isRateLimited, isRateLimitNotificationActive, dispatch]);
 
     // Session timer effect - handles the countdown for the active session
     useEffect(() => {
         if (isTimerActive && timeLeft !== null && timeLeft > 0) {
+            let prev = timeLeft;
             const timer = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev !== null && prev > 0) {
-                        return prev - 1;
-                    } else {
-                        setIsTimerActive(false);
-                        return 0;
-                    }
-                });
+                if (prev !== null && prev > 0) {
+                    prev = prev - 1;
+                } else {
+                    dispatch(setIsTimerActive(false));
+                    prev = 0;
+                }
+                dispatch(setTimeLeft(prev));
             }, 1000);
 
             return () => clearInterval(timer);
         }
-    }, [isTimerActive, timeLeft]);
+    }, [isTimerActive, timeLeft, dispatch]);
 
     // Auto-dismiss other notifications after 3 seconds (but not during rate limiting)
     useEffect(() => {
@@ -440,7 +474,7 @@ export function Sender(){
             autoDismissTimerRef.current = setTimeout(() => {
                 // Double-check rate limiting status before dismissing
                 if (!isRateLimited && !isRateLimitNotificationActive) {
-                    setShowNotification(false);
+                    dispatch(setShowNotification(false));
                 }
                 autoDismissTimerRef.current = null;
             }, 3000);
@@ -608,8 +642,8 @@ public class Example {
                             value={content}
                             spellCheck={false}
                             onChange={e => {
-                                setContent(e.target.value);
-                                if (errorMessage) setErrorMessage(""); // Clear error when user starts typing
+                                dispatch(setContent(e.target.value));
+                                if (errorMessage) dispatch(setErrorMessage("")); // Clear error when user starts typing
                             }}
                             onKeyDown={e => {
                                 // Check if it's mobile device
@@ -697,8 +731,8 @@ public class Example {
                                     onClick={() => {
                                         if (code) {
                                             navigator.clipboard.writeText(code);
-                                            setCopied(true);
-                                            setTimeout(() => setCopied(false), 2000);
+                                            dispatch(setCopied(true));
+                                            setTimeout(() => dispatch(setCopied(false)), 2000);
                                         }
                                     }}
                                     className={`transition-colors cursor-pointer p-0.5 sm:p-1 rounded-lg hover:bg-white/5 ${
