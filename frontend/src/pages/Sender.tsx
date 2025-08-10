@@ -409,9 +409,9 @@ export function Sender(){
     async function UploadImage() {
         try {
             if (!selectedFile) {
-                            dispatch(setNotificationMessage("Please choose an image to upload"));
-            dispatch(setNotificationType("warning"));
-            dispatch(setShowNotification(true));
+                dispatch(setNotificationMessage("Please choose an image to upload"));
+                dispatch(setNotificationType("warning"));
+                dispatch(setShowNotification(true));
                 return;
             }
             if (isRateLimited || isRateLimitNotificationActive) {
