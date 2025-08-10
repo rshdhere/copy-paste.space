@@ -62,7 +62,7 @@ export function Sender(){
     const [mode, setMode] = useState<'text' | 'image'>('text');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
-    const [imageKey, setImageKey] = useState<string | null>(null);
+    const [, setImageKey] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragActive, setIsDragActive] = useState<boolean>(false);
@@ -100,6 +100,16 @@ export function Sender(){
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         setPreviewUrl(url);
     }
+
+    const clearSelectedImage = () => {
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setUploadProgress(0);
+        setImageKey(null);
+    };
 
     // Rate limiting cooldown timer
     useEffect(() => {
@@ -760,8 +770,9 @@ public class Example {
                         >
                             <div className="flex flex-col gap-3">
                                 {/* Dropzone */}
-                                <div
-                                    className={`flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-4 py-6 cursor-pointer ${
+                                <motion.div
+                                    layout
+                                    className={`flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-4 py-6 cursor-pointer relative overflow-hidden ${
                                         isDragActive ? 'border-cyan-400 bg-cyan-400/10' : 'border-white/15 bg-white/5'
                                     }`}
                                     onClick={() => fileInputRef.current?.click()}
@@ -773,15 +784,27 @@ public class Example {
                                         const file = e.dataTransfer.files && e.dataTransfer.files[0] ? e.dataTransfer.files[0] : null;
                                         handleSelectedFile(file, 'drop');
                                     }}
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.99 }}
+                                    animate={isDragActive ? { boxShadow: '0 0 0 2px rgba(34,211,238,0.35), 0 0 30px rgba(34,211,238,0.2)' } : { boxShadow: '0 0 0 0 rgba(0,0,0,0)' }}
+                                    transition={{ type: 'spring', stiffness: 250, damping: 22 }}
                                 >
-                                    <div className="w-12 h-12 rounded-full bg-white text-gray-900 flex items-center justify-center">
+                                    <motion.div 
+                                        className="w-12 h-12 rounded-full bg-white text-gray-900 flex items-center justify-center"
+                                    >
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M12 19V6M5 12l7-7 7 7" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
-                                    </div>
+                                    </motion.div>
                                     <div className="text-white text-sm font-medium">Drag and drop an image</div>
                                     <div>
-                                        <button className="mt-1 px-3 py-1 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm cursor-pointer">Or select file</button>
+                                        <motion.button 
+                                            className="mt-1 px-3 py-1 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm cursor-pointer"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                        >
+                                            Or select file
+                                        </motion.button>
                                     </div>
                                     <input
                                         ref={fileInputRef}
@@ -794,19 +817,61 @@ public class Example {
                                         }}
                                         disabled={isUploading || isRateLimited}
                                     />
-                                </div>
+                                </motion.div>
 
                                 {/* Selection details */}
+                                <AnimatePresence>
                                 {selectedFile && (
-                                    <div className="flex items-center gap-3 text-xs text-gray-300">
+                                    <motion.div 
+                                        layout
+                                        className="flex items-center gap-3 text-xs text-gray-300"
+                                        initial={{ opacity: 0, y: 8, scale: 0.98, height: 0 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, y: -8, scale: 0.98, height: 0, marginTop: 0 }}
+                                        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                                        style={{ overflow: 'hidden' }}
+                                    >
                                         {previewUrl && (
-                                            <img src={previewUrl} alt="preview" className="w-10 h-10 object-cover rounded" />
+                                            <motion.img 
+                                                src={previewUrl} 
+                                                alt="preview" 
+                                                className="w-10 h-10 object-cover rounded cursor-pointer"
+                                                initial={{ opacity: 0, scale: 0.9, filter: 'blur(6px)' }}
+                                                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                                                transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+                                                whileHover={{ scale: 1.05, rotate: 1.5 }}
+                                                whileTap={{ scale: 0.95, rotate: -1.5 }}
+                                                onClick={() => fileInputRef.current?.click()}
+                                                title="Change image"
+                                            />
                                         )}
-                                        <div className="break-all">
+                                        <motion.div 
+                                            className="break-all cursor-pointer"
+                                            initial={{ opacity: 0, x: 8 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ type: 'tween', duration: 0.25, ease: 'easeOut', delay: 0.05 }}
+                                            onClick={() => fileInputRef.current?.click()}
+                                            title="Change image"
+                                        >
                                             {selectedFile.name} {selectedFile.type ? `(${selectedFile.type})` : ''} - {(selectedFile.size / 1024).toFixed(1)} KB
-                                        </div>
-                                    </div>
+                                        </motion.div>
+                                        <motion.button
+                                            onClick={clearSelectedImage}
+                                            className="ml-auto p-1.5 rounded hover:bg-white/5 text-red-300 hover:text-red-400 cursor-pointer"
+                                            whileHover={{ scale: 1.1, rotate: 3 }}
+                                            whileTap={{ scale: 0.95, rotate: -3 }}
+                                            title="Remove selected image"
+                                        >
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M3 6h18" strokeLinecap="round" />
+                                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeLinecap="round" />
+                                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                                <path d="M10 11v6M14 11v6" strokeLinecap="round" />
+                                            </svg>
+                                        </motion.button>
+                                    </motion.div>
                                 )}
+                                </AnimatePresence>
                                 {isUploading && (
                                     <div className="w-full bg-white/10 rounded h-2 overflow-hidden">
                                         <motion.div
@@ -817,9 +882,7 @@ public class Example {
                                         />
                                     </div>
                                 )}
-                                {imageKey && (
-                                    <div className="text-xs text-green-400 break-all">Key: {imageKey}</div>
-                                )}
+                                {/* intentionally no key display for security/clean UI */}
                             </div>
                         </motion.div>
                     )}

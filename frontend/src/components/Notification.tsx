@@ -105,7 +105,7 @@ export function Notification({ isVisible, message, type, onClose }: Notification
               <div className="flex-1 min-w-0">
                 {secondary !== undefined ? (
                   <div className="space-y-1">
-                    <p className={`${styles.text} ${type === 'success' ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'} font-bold leading-tight`}>
+                    <p className={`${styles.text} text-sm sm:text-base font-semibold leading-tight`}>
                       {primary}
                     </p>
                     <p className={`${styles.text} text-xs sm:text-sm font-normal leading-relaxed opacity-70`}>
@@ -113,7 +113,7 @@ export function Notification({ isVisible, message, type, onClose }: Notification
                     </p>
                   </div>
                 ) : (
-                  <p className={`${styles.text} ${type === 'success' ? 'text-base sm:text-lg' : 'text-xs sm:text-sm'} font-medium leading-relaxed`}>
+                  <p className={`${styles.text} text-sm sm:text-base font-medium leading-relaxed`}>
                     {primary}
                   </p>
                 )}
