@@ -74,16 +74,21 @@ export function Sender(){
         };
     }, [previewUrl]);
 
-    function handleSelectedFile(file: File | null) {
+    function handleSelectedFile(file: File | null, source: 'drop' | 'select' = 'select') {
         if (!file) {
             setSelectedFile(null);
             setPreviewUrl(null);
+            if (source === 'drop') {
+                dispatch(setNotificationMessage("Please drop an image file"));
+                dispatch(setNotificationType("warning"));
+                dispatch(setShowNotification(true));
+            }
             return;
         }
         if (!file.type.startsWith("image/")) {
-            setNotificationMessage("Please select a valid image file");
-            setNotificationType("warning");
-            setShowNotification(true);
+            dispatch(setNotificationMessage("Please select a valid image file"));
+            dispatch(setNotificationType("warning"));
+            dispatch(setShowNotification(true));
             setSelectedFile(null);
             setPreviewUrl(null);
             return;
@@ -404,9 +409,9 @@ export function Sender(){
     async function UploadImage() {
         try {
             if (!selectedFile) {
-                setNotificationMessage("Please choose an image to upload");
-                setNotificationType("warning");
-                setShowNotification(true);
+                            dispatch(setNotificationMessage("Please choose an image to upload"));
+            dispatch(setNotificationType("warning"));
+            dispatch(setShowNotification(true));
                 return;
             }
             if (isRateLimited || isRateLimitNotificationActive) {
@@ -448,14 +453,14 @@ export function Sender(){
                 console.error('Failed to generate OTP for image key:', sendErr);
             }
 
-            setNotificationMessage("Image uploaded successfully\nShare within ~5 minutes to your peers");
-            setNotificationType("success");
-            setShowNotification(true);
+            dispatch(setNotificationMessage("Image uploaded successfully\nshare within 05 minutes to your peers"));
+            dispatch(setNotificationType("success"));
+            dispatch(setShowNotification(true));
         } catch (error) {
             console.error('Image upload failed:', error);
-            setNotificationMessage("Failed to upload image. Please try again.");
-            setNotificationType("error");
-            setShowNotification(true);
+            dispatch(setNotificationMessage("Failed to upload image. Please try again."));
+            dispatch(setNotificationType("error"));
+            dispatch(setShowNotification(true));
         } finally {
             setIsUploading(false);
         }
@@ -766,7 +771,7 @@ public class Example {
                                         e.preventDefault();
                                         setIsDragActive(false);
                                         const file = e.dataTransfer.files && e.dataTransfer.files[0] ? e.dataTransfer.files[0] : null;
-                                        handleSelectedFile(file);
+                                        handleSelectedFile(file, 'drop');
                                     }}
                                 >
                                     <div className="w-12 h-12 rounded-full bg-white text-gray-900 flex items-center justify-center">
@@ -776,7 +781,7 @@ public class Example {
                                     </div>
                                     <div className="text-white text-sm font-medium">Drag and drop an image</div>
                                     <div>
-                                        <button className="mt-1 px-3 py-1 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Or select file</button>
+                                        <button className="mt-1 px-3 py-1 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm cursor-pointer">Or select file</button>
                                     </div>
                                     <input
                                         ref={fileInputRef}
@@ -785,7 +790,7 @@ public class Example {
                                         className="hidden"
                                         onChange={(e) => {
                                             const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-                                            handleSelectedFile(file);
+                                            handleSelectedFile(file, 'select');
                                         }}
                                         disabled={isUploading || isRateLimited}
                                     />
@@ -983,7 +988,7 @@ public class Example {
                             <button
                                 type="button"
                                 onClick={() => handleModeChange('text')}
-                                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs border transition-colors ${mode === 'text' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-transparent border-white/15 text-gray-300 hover:bg-white/5'}`}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs border transition-colors cursor-pointer ${mode === 'text' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-transparent border-white/15 text-gray-300 hover:bg-white/5'}`}
                                 title="Text"
                             >
                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -994,7 +999,7 @@ public class Example {
                             <button
                                 type="button"
                                 onClick={() => handleModeChange('image')}
-                                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs border transition-colors ${mode === 'image' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-transparent border-white/15 text-gray-300 hover:bg-white/5'}`}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs border transition-colors cursor-pointer ${mode === 'image' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-transparent border-white/15 text-gray-300 hover:bg-white/5'}`}
                                 title="Image"
                             >
                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
