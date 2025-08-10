@@ -140,7 +140,28 @@ export function Receiver(){
                 // setOtp("");
                 const dataArr = response.data?.data;
                 if (Array.isArray(dataArr) && dataArr.length > 0) {
-                    dispatch(setReceivedContent(dataArr[0].content));
+                    const payload = dataArr[0].content as string;
+                    dispatch(setReceivedContent(payload));
+                    // If payload appears to be a temp S3 key, auto-download
+                    if (typeof payload === 'string' && payload.startsWith('temp/')) {
+                        try {
+                            const { data: dl } = await axios.get(`${backend_url}/api/v1/images/download-url`, {
+                                params: { key: payload },
+                                timeout: getOptimalTimeout()
+                            });
+                            const url = dl?.downloadUrl as string | undefined;
+                            if (url) {
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = payload.split('/').pop() || 'image';
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                            }
+                        } catch (e) {
+                            console.error('Failed to generate download link for image key', e);
+                        }
+                    }
                 } else {
                     dispatch(setNotification({
                         isVisible: true,
