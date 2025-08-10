@@ -75,6 +75,9 @@ export function Notification({ isVisible, message, type, onClose }: Notification
 
   const styles = getStyles();
 
+  // Split message into primary and secondary lines for emphasis
+  const [primary, secondary] = message.split('\n');
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -100,18 +103,18 @@ export function Notification({ isVisible, message, type, onClose }: Notification
                 {getIcon()}
               </div>
               <div className="flex-1 min-w-0">
-                {message.includes('\n') ? (
+                {secondary !== undefined ? (
                   <div className="space-y-1">
-                    <p className={`${styles.text} text-base sm:text-lg font-bold leading-tight`}>
-                      {message.split('\n')[0]}
+                    <p className={`${styles.text} ${type === 'success' ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'} font-bold leading-tight`}>
+                      {primary}
                     </p>
                     <p className={`${styles.text} text-xs sm:text-sm font-normal leading-relaxed opacity-70`}>
-                      {message.split('\n')[1]}
+                      {secondary}
                     </p>
                   </div>
                 ) : (
-                  <p className={`${styles.text} text-xs sm:text-sm font-medium leading-relaxed`}>
-                    {message}
+                  <p className={`${styles.text} ${type === 'success' ? 'text-base sm:text-lg' : 'text-xs sm:text-sm'} font-medium leading-relaxed`}>
+                    {primary}
                   </p>
                 )}
               </div>

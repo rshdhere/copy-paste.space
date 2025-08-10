@@ -9,6 +9,7 @@ import { Notification } from "../components/Notification";
 import { detectNetworkError, getOptimalTimeout, checkBackendStatus } from "../utils/networkUtils";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../store/store";
+import { useState } from "react";
 import {
     setContent,
     setCode,
@@ -16,7 +17,6 @@ import {
     setErrorMessage,
     setTimeLeft,
     setIsTimerActive,
-    setHintHighlight,
     setShowNotification,
     setNotificationMessage,
     setNotificationType,
@@ -44,7 +44,7 @@ export function Sender(){
         errorMessage,
         timeLeft,
         isTimerActive,
-        hintHighlight,
+
         showNotification,
         notificationMessage,
         notificationType,
@@ -59,6 +59,47 @@ export function Sender(){
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [mode, setMode] = useState<'text' | 'image'>('text');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
+    const [imageKey, setImageKey] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState<boolean>(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isDragActive, setIsDragActive] = useState<boolean>(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+        };
+    }, [previewUrl]);
+
+    function handleSelectedFile(file: File | null, source: 'drop' | 'select' = 'select') {
+        if (!file) {
+            setSelectedFile(null);
+            setPreviewUrl(null);
+            if (source === 'drop') {
+                dispatch(setNotificationMessage("Please drop an image file"));
+                dispatch(setNotificationType("warning"));
+                dispatch(setShowNotification(true));
+            }
+            return;
+        }
+        if (!file.type.startsWith("image/")) {
+            dispatch(setNotificationMessage("Please select a valid image file"));
+            dispatch(setNotificationType("warning"));
+            dispatch(setShowNotification(true));
+            setSelectedFile(null);
+            setPreviewUrl(null);
+            return;
+        }
+        setSelectedFile(file);
+        setUploadProgress(0);
+        setImageKey(null);
+        const url = URL.createObjectURL(file);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(url);
+    }
 
     // Rate limiting cooldown timer
     useEffect(() => {
@@ -192,8 +233,8 @@ export function Sender(){
         }
     }, [isRateLimited, isRateLimitNotificationActive, dispatch]);
 
-    const startTimer = () => {
-        dispatch(setTimeLeft(120));
+    const startTimer = (seconds: number = 120) => {
+        dispatch(setTimeLeft(seconds));
         dispatch(setIsTimerActive(true));
     };
 
@@ -205,12 +246,7 @@ export function Sender(){
         }
     };
 
-    const handleIconClick = () => {
-        if (!isRateLimited && !isRateLimitNotificationActive) {
-            dispatch(setHintHighlight(true));
-            setTimeout(() => dispatch(setHintHighlight(false)), 2000);
-        }
-    };
+    // Removed unused icon-click handler after replacing toolbar icons with mode buttons
 
 
     // useEffect(() => {
@@ -308,8 +344,8 @@ export function Sender(){
                     dispatch(setShowNotification(true));
                 }
                 
-                // Start new session after showing notification
-                startTimer();
+                // Start new session after showing notification (text: 2 minutes)
+                startTimer(120);
                 dispatch(setCode(newCode));
             } catch (error) {
                 console.error("Failed to send content:", error);
@@ -369,6 +405,78 @@ export function Sender(){
             }
         }
     }
+
+    async function UploadImage() {
+        try {
+            if (!selectedFile) {
+                            dispatch(setNotificationMessage("Please choose an image to upload"));
+            dispatch(setNotificationType("warning"));
+            dispatch(setShowNotification(true));
+                return;
+            }
+            if (isRateLimited || isRateLimitNotificationActive) {
+                return;
+            }
+            setIsUploading(true);
+            setUploadProgress(0);
+            setImageKey(null);
+
+            const params = new URLSearchParams({
+                filename: selectedFile.name,
+                contentType: selectedFile.type || 'application/octet-stream'
+            });
+
+            const { data } = await axios.get(`${backend_url}/api/v1/images/upload-url?${params.toString()}`, { timeout: getOptimalTimeout() });
+            const { uploadUrl, key } = data as { uploadUrl: string; key: string };
+
+            await axios.put(uploadUrl, selectedFile, {
+                headers: { 'Content-Type': selectedFile.type || 'application/octet-stream' },
+                onUploadProgress: (evt) => {
+                    if (evt.total) {
+                        const pct = Math.round((evt.loaded * 100) / evt.total);
+                        setUploadProgress(pct);
+                    }
+                }
+            });
+
+            setImageKey(key);
+            // Generate a 4-digit OTP for the image, reuse existing /send
+            try {
+                const resp = await axios.post(`${backend_url}/api/v1/user/send`, { content: key }, { timeout: getOptimalTimeout() });
+                const newCode = resp.data?.code || null;
+                if (newCode) {
+                    // Image OTP valid for ~5 minutes to match S3 temp object lifetime
+                    startTimer(300);
+                    dispatch(setCode(newCode));
+                }
+            } catch (sendErr) {
+                console.error('Failed to generate OTP for image key:', sendErr);
+            }
+
+            dispatch(setNotificationMessage("Image uploaded successfully\nshare within 05 minutes to your peers"));
+            dispatch(setNotificationType("success"));
+            dispatch(setShowNotification(true));
+        } catch (error) {
+            console.error('Image upload failed:', error);
+            dispatch(setNotificationMessage("Failed to upload image. Please try again."));
+            dispatch(setNotificationType("error"));
+            dispatch(setShowNotification(true));
+        } finally {
+            setIsUploading(false);
+        }
+    }
+
+    const handleModeChange = (newMode: 'text' | 'image') => {
+        setMode(newMode);
+        // reset state when switching modes
+        if (newMode === 'text') {
+            setSelectedFile(null);
+            setUploadProgress(0);
+            setImageKey(null);
+        } else {
+            setCode(null);
+        }
+    };
 
     const handleCloseNotification = () => {
         // Don't allow closing rate limit notifications
@@ -552,11 +660,7 @@ export function Sender(){
                 <div className="flex flex-col w-full bg-[#2A2A2A] rounded-lg shadow-lg overflow-hidden relative border border-neutral-600">
                     {/* Hint section mounted on top */}
                     <div className="absolute -top-2 left-2 right-2 sm:left-4 sm:right-4 z-20">
-                        <div className={`flex items-center gap-2 backdrop-blur-sm border rounded-md px-2 py-1.5 sm:px-3 sm:py-2 shadow-lg transition-all ${
-                            hintHighlight 
-                                ? 'duration-150 ease-out bg-gradient-to-r from-cyan-500/30 to-blue-500/30 border-cyan-400/50 scale-105' 
-                                : 'duration-500 ease-in-out bg-[#2A2A2A]/90 border-white/10'
-                        }`}>
+                        <div className={`flex items-center gap-2 backdrop-blur-sm border rounded-md px-2 py-1.5 sm:px-3 sm:py-2 shadow-lg transition-all duration-500 ease-in-out bg-[#2A2A2A]/90 border-white/10`}>
                             <div className="text-cyan-400/80 flex-shrink-0">
                                 <Feature />
                             </div>
@@ -571,8 +675,18 @@ export function Sender(){
                         </div>
                     </div>
                     
-                    {/* Text input area */}
-                    <div className="flex-4 p-3 sm:p-4 pt-6 sm:pt-8 pb-2">
+                    
+                    {/* Input area with subtle transition between modes */}
+                    <AnimatePresence mode="wait">
+                    {mode === 'text' ? (
+                    <motion.div
+                        key="text-mode"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.22, ease: "easeOut" }}
+                        className="flex-4 p-3 sm:p-4 pt-6 sm:pt-8 pb-2 mt-6 sm:mt-8"
+                    >
                         <motion.textarea
                             id="content-textarea"
                             name="content"
@@ -634,12 +748,88 @@ public class Example {
                             }}
                             rows={1}
                         ></motion.textarea>
-                    </div>
+                    </motion.div>
+                    ) : (
+                        <motion.div
+                            key="image-mode"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            className="flex-4 p-3 sm:p-4 pt-6 sm:pt-8 pb-2 mt-6 sm:mt-8"
+                        >
+                            <div className="flex flex-col gap-3">
+                                {/* Dropzone */}
+                                <div
+                                    className={`flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-4 py-6 cursor-pointer ${
+                                        isDragActive ? 'border-cyan-400 bg-cyan-400/10' : 'border-white/15 bg-white/5'
+                                    }`}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    onDragOver={(e) => { e.preventDefault(); setIsDragActive(true); }}
+                                    onDragLeave={() => setIsDragActive(false)}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        setIsDragActive(false);
+                                        const file = e.dataTransfer.files && e.dataTransfer.files[0] ? e.dataTransfer.files[0] : null;
+                                        handleSelectedFile(file, 'drop');
+                                    }}
+                                >
+                                    <div className="w-12 h-12 rounded-full bg-white text-gray-900 flex items-center justify-center">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M12 19V6M5 12l7-7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-white text-sm font-medium">Drag and drop an image</div>
+                                    <div>
+                                        <button className="mt-1 px-3 py-1 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-sm cursor-pointer">Or select file</button>
+                                    </div>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                                            handleSelectedFile(file, 'select');
+                                        }}
+                                        disabled={isUploading || isRateLimited}
+                                    />
+                                </div>
+
+                                {/* Selection details */}
+                                {selectedFile && (
+                                    <div className="flex items-center gap-3 text-xs text-gray-300">
+                                        {previewUrl && (
+                                            <img src={previewUrl} alt="preview" className="w-10 h-10 object-cover rounded" />
+                                        )}
+                                        <div className="break-all">
+                                            {selectedFile.name} {selectedFile.type ? `(${selectedFile.type})` : ''} - {(selectedFile.size / 1024).toFixed(1)} KB
+                                        </div>
+                                    </div>
+                                )}
+                                {isUploading && (
+                                    <div className="w-full bg-white/10 rounded h-2 overflow-hidden">
+                                        <motion.div
+                                            className="bg-cyan-500 h-2"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${uploadProgress}%` }}
+                                            transition={{ type: 'tween', duration: 0.25, ease: 'easeOut' }}
+                                        />
+                                    </div>
+                                )}
+                                {imageKey && (
+                                    <div className="text-xs text-green-400 break-all">Key: {imageKey}</div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                    </AnimatePresence>
                     
                     {/* Bottom section with interactive icons */}
                     <div className="flex flex-col">
                         {/* Character counter */}
                         <div className="flex justify-end px-3 sm:px-4 pt-2 pb-1">
+                            {mode === 'text' ? (
                             <span className={`text-xs ${
                                 content.length > MAX_PAYLOAD_SIZE 
                                     ? 'text-red-400' 
@@ -649,6 +839,9 @@ public class Example {
                             }`}>
                                 {content.length}/{MAX_PAYLOAD_SIZE}
                             </span>
+                            ) : (
+                                <span className="text-xs text-gray-400">Image uploads expire automatically in ~5 minutes</span>
+                            )}
                         </div>
                         
                         {/* Controls row */}
@@ -668,7 +861,7 @@ public class Example {
                                 </svg>
                             </a>
                             
-                            {/* OTP Box */}
+                            {/* OTP Box (used for both Text and Image modes) */}
                             <motion.div 
                                 className="flex items-center space-x-1.5 sm:space-x-2 bg-transparent rounded-lg px-1.5 py-1 sm:px-2 sm:py-1.5 border border-gray-400/30 cursor-pointer hover:bg-white/5 transition-colors"
                                 initial={{ opacity: 0, scale: 0.8, x: -20 }}
@@ -684,7 +877,7 @@ public class Example {
                             >
                                 <motion.span 
                                     className="text-white text-xs sm:text-sm font-mono"
-                                    key={code}
+                                    key={code || "otp"}
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ 
@@ -791,39 +984,34 @@ public class Example {
                                     transition={{ duration: 0.5, ease: "easeInOut", delay: 0.1 }}
                                 />
                             </motion.svg>
-                            {/* Paperclip icon */}
-                            <svg 
-                                onClick={handleIconClick}
-                                className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 cursor-pointer hover:text-cyan-400 transition-colors" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
+                            {/* Mode switch buttons */}
+                            <button
+                                type="button"
+                                onClick={() => handleModeChange('text')}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs border transition-colors cursor-pointer ${mode === 'text' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-transparent border-white/15 text-gray-300 hover:bg-white/5'}`}
+                                title="Text"
                             >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                            </svg>
-                            {/* Globe icon */}
-                            <svg 
-                                onClick={handleIconClick}
-                                className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 cursor-pointer hover:text-cyan-400 transition-colors" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M4 6h16M8 6v12m8-12v12M4 18h16" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                <span className="hidden sm:inline">Text</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleModeChange('image')}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs border transition-colors cursor-pointer ${mode === 'image' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-transparent border-white/15 text-gray-300 hover:bg-white/5'}`}
+                                title="Image"
                             >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {/* Microphone icon */}
-                            <svg 
-                                onClick={handleIconClick}
-                                className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 cursor-pointer hover:text-cyan-400 transition-colors" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+                                    <path d="M8 13l3-3 5 6" strokeLinecap="round" strokeLinejoin="round" />
+                                    <circle cx="8" cy="9" r="1.5" />
+                                </svg>
+                                <span className="hidden sm:inline">Image</span>
+                            </button>
                             {/* Send button */}
-                            <div onClick={(!isPayloadTooLarge && !isRateLimited) ? SaveContent : undefined} className={isPayloadTooLarge || isRateLimited ? "cursor-not-allowed" : "cursor-pointer"}>
-                                <Button disabled={isPayloadTooLarge || isRateLimited} rateLimitCooldown={rateLimitCooldown}/>
+                            <div onClick={(!isRateLimited && (mode === 'text' ? !isPayloadTooLarge : !!selectedFile) && !isUploading) ? (mode === 'text' ? SaveContent : UploadImage) : undefined} className={(isRateLimited || (mode === 'text' ? isPayloadTooLarge : !selectedFile) || isUploading) ? "cursor-not-allowed" : "cursor-pointer"}>
+                                <Button disabled={isRateLimited || (mode === 'text' ? isPayloadTooLarge : !selectedFile) || isUploading} rateLimitCooldown={rateLimitCooldown}/>
                             </div>
                         </div>
                     </div>
