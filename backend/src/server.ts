@@ -6,6 +6,8 @@ import receiverRouter from "./routes/receiver";
 import { startWarmupCron } from "./warmup-cron";
 import { generalRateLimiter } from "./middleware/rateLimit";
 import { ipBlockMiddleware } from "./middleware/ipBlock";
+import imagesRouter from "./routes/images";
+import { startS3CleanupCron } from "./s3-cleanup-cron";
 
 const app = express();
 
@@ -18,7 +20,14 @@ app.use(ipBlockMiddleware);
 
 // for parsing user data
 app.use(express.json());
-app.use(cors());
+
+// CORS setup for frontend domain access
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "*";
+app.use(cors({
+  origin: FRONTEND_ORIGIN === "*" ? true : FRONTEND_ORIGIN,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+}));
 
 // Apply general rate limiting to all routes
 app.use(generalRateLimiter);
@@ -26,6 +35,7 @@ app.use(generalRateLimiter);
 // routes
 app.use("/api/v1/user", senderRouter);
 app.use("/api/v1/user", receiverRouter);
+app.use("/api/v1/images", imagesRouter);
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
@@ -35,6 +45,8 @@ async function StartServer(){
         console.log(`your server is listening on http://localhost:${PORT}`)
         // Start the warmup cron job
         startWarmupCron();
+        // Start S3 cleanup cron job
+        startS3CleanupCron();
     })
 };
 

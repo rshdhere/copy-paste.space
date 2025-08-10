@@ -20,7 +20,9 @@
     "express-rate-limit": "^8.0.1",
     "mongoose": "^8.16.4",
     "node-cron": "^3.0.3",
-    "zod": "^4.0.5"
+    "zod": "^4.0.5",
+    "@aws-sdk/client-s3": "^3.654.0",
+    "@aws-sdk/s3-request-presigner": "^3.654.0"
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
