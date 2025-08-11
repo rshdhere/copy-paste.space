@@ -4,8 +4,6 @@ Easily share text snippets and images between your phone, tablet, and computer i
 
 ![Project Demo](assets/copy-paste.space.gif)
 
----
-
 ## 📖 Introduction
 
 **copy-paste.space** is a minimal web tool built with **TypeScript**, **Node.js**, and a lightweight frontend for instant **cross-device text sharing** — no sign-ups or logins required. Switch between devices or share notes quickly with a secure, rate-limited backend, deployed on **Railway** for privacy-focused use.
