@@ -2,6 +2,7 @@
 
 Easily share text snippets and images between your phone, tablet, and computer instantly, without cables or complicated setup.
 
+
 ![Project Demo](assets/copy-paste.space.gif)
 
 ## 📖 Introduction
@@ -67,6 +68,12 @@ To set up and run the project on your local machine:
   ```
    Make sure you're using a TypeScript-compatible runtime (like Node.js 18+ and ts-node or configured build steps).
    
+---
+
+## Image Sharing Overview V1.5
+
+![Demo](assets/copy-paste.space-V1.5.gif)
+
 ---
 
 ## 🤝Contributions
