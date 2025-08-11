@@ -3,7 +3,7 @@
 Easily share text snippets and images between your phone, tablet, and computer instantly, without cables or complicated setup.
 
 
-![Project Demo](assets/copy-paste.space.gif)
+<img src="assets/copy-paste.space.gif" alt="Project Demo" width="700" height="400">
 
 ## 📖 Introduction
 
