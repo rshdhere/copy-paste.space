@@ -2,15 +2,8 @@
 
 Easily share text snippets and images between your phone, tablet, and computer instantly, without cables or complicated setup.
 
----
 
-## Demo
-
-![Demo](assets/copy-paste.space-demo.gif)
-
-
-
----
+![Project Demo](assets/copy-paste.space.gif)
 
 ## 📖 Introduction
 
