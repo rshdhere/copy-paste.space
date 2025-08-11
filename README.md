@@ -1,74 +1,80 @@
 # copy-paste.space
 
-### Seamlessly share text across devices through a clean, browser-based clipboard.
+Easily share text snippets and images between your phone, tablet, and computer instantly, without cables or complicated setup.
 
 ---
 
-## Introduction
-
-**copy-paste.space** is a minimalistic web tool built with **TypeScript**, **Node.js**, and a lightweight **frontend** to enable instant **cross-device text sharing**. It eliminates the need for sign-ups, logins, or complicated setups. Whether you're switching from phone to laptop or sharing notes quickly, this tool gives you a fast and simple bridge between your devices. Built with a **secure backend**, rate-limiting, and deployed on **Railway**, it's meant for privacy-focused, on-the-go usage.
+## Demo
+![Project Demo](assets/copy-paste.space.gif)
 
 ---
 
-## Tech Stack
+## 📖 Introduction
 
-### Frontend
+**copy-paste.space** is a minimal web tool built with **TypeScript**, **Node.js**, and a lightweight frontend for instant **cross-device text sharing** — no sign-ups or logins required. Switch between devices or share notes quickly with a secure, rate-limited backend, deployed on **Railway** for privacy-focused use.
+
+---
+
+## ✨ Features
+- 📱 **copy-paste.space support** – Works on mobile, tablet, and desktop
+- ⚡ **Instant transfer** – Send and receive within seconds
+- 🔒 **Secure** – End-to-end encryption for privacy
+- 🌐 **No login required** – Just open the app and start sharing
+- 🖼 **Image & text support** – Share notes, messages, or pictures effortlessly
+
+---
+
+## 📸 How It Works
+- Visit https://copy-paste.space on both devices.
+- Paste your text or upload an image.
+- Instantly access the content from your other device.
+
+---
+## 🚀 Tech Stack
+
+### 🎨 Frontend
 - React with TypeScript
 - react-router-dom 
 
-### Backend
+### 🛠️ Backend
 - Node.js
 - TypeScript
 - Express.js (assumed based on structure and middleware usage)
 - dotenv for environment variable management
 
-### DevOps & Deployment
+### ☁️ DevOps & Deployment
 - Vercel (for frontend hosting and CI/CD)
 - Railway (for backend infrastructure and environment management)
 - Other Tools: dotenv, rate-limiting middleware, tsconfig, REST API
 
 ---
 
-## Visual Overview
-
-A short demo video showcasing how copy-paste.space works:
-
-[Watch Demo on LinkedIn (posted by Mohammed Raashed)](https://www.linkedin.com/posts/mohammed-raashed-b07622255_copy-pastespace-open-source-alternative-activity-7357660963925364737-OtxH)
-
-This video shows how the app allows seamless text sharing across devices in real-time.
-
-
----
-
-## Installation Instructions (for Users)
-
-You don’t need to install anything to use this tool.
-
-Just open: [https://copy-paste.space](https://copy-paste.space)  
-Paste your text. It will be accessible on any device with the same page open.
-
----
-
-## Running Locally (for Developers)
+## 📦 Installation
 
 To set up and run the project on your local machine:
 
- 1. **Clone the Repository**
+ 1️⃣ **Clone the Repository**
   ```bash
   git clone https://github.com/rshdhere/copy-paste.space.git
   cd copy-paste.space
   ```
-2. **Install Dependencies**
+2️⃣ **Install Dependencies**
   ```bash
    npm install
   ```
-3. **Set up Environment Variables**
+3️⃣ **Set up Environment Variables**
 
   Create a .env file based on .example.env and add required variables.
 
-4. **Run the Server**
+4️⃣ **Run the Server**
   ```bash
   npm run dev
   ```
    Make sure you're using a TypeScript-compatible runtime (like Node.js 18+ and ts-node or configured build steps).
+   
+---
 
+## 🤝Contributions
+Contributors are welcome!
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
