@@ -92,7 +92,7 @@ To set up and run the project on your local machine:
    AWS_REGION=ap-south-1
    S3_BUCKET_NAME=<your-aws-bucket-name> 
    AWS_ACCESS_KEY_ID=<your-aws-access-key>
-   AWS_SECRET_ACCESS_KEY=<>your-aws-secret
+   AWS_SECRET_ACCESS_KEY=<your-aws-secret>
    FRONTEND_ORIGIN=http://localhost:5173
    MONGODB_URI=mongodb://localhost:27017/
    OPTIONS=ABC123
@@ -123,10 +123,10 @@ To set up and run the project on your local machine:
    
    Configure the following variables in your `.env` file:
    ```
-   VITE_POSTHOG_SECURE_PATH=<your-path>
-   VITE_BACKEND_URI=http://localhost:8086
    VITE_POSTHOG_API_KEY=<your-posthog-api-key>
+   VITE_POSTHOG_SECURE_PATH=<your-posthog-secure-path>
    VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+   VITE_BACKEND_URI=http://localhost:8086
    ```
 
 4. Start the development server:
