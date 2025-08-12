@@ -88,8 +88,14 @@ To set up and run the project on your local machine:
    Configure the following variables in your `.env` file:
    ```
    PORT=8080
-   MONGODB_URI=your_mongodb_connection_string
    NODE_ENV=development
+   AWS_REGION=ap-south-1
+   S3_BUCKET_NAME=<your-aws-bucket-name> 
+   AWS_ACCESS_KEY_ID=<your-aws-access-key>
+   AWS_SECRET_ACCESS_KEY=<>your-aws-secret
+   FRONTEND_ORIGIN=http://localhost:5173
+   MONGODB_URI=mongodb://localhost:27017/
+   OPTIONS=ABC123
    ```
 
 4. Start the development server:
@@ -110,7 +116,20 @@ To set up and run the project on your local machine:
    npm install
    ```
 
-3. Start the development server:
+3. Create environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Configure the following variables in your `.env` file:
+   ```
+   VITE_POSTHOG_SECURE_PATH=<your-path>
+   VITE_BACKEND_URI=http://localhost:8086
+   VITE_POSTHOG_API_KEY=<your-posthog-api-key>
+   VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+   ```
+
+4. Start the development server:
    ```bash
    npm run dev
    ```
