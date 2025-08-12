@@ -49,25 +49,89 @@ Easily share text snippets and images between your phone, tablet, and computer i
 
 To set up and run the project on your local machine:
 
- 1️⃣ **Clone the Repository**
-  ```bash
-  git clone https://github.com/rshdhere/copy-paste.space.git
-  cd copy-paste.space
-  ```
-2️⃣ **Install Dependencies**
-  ```bash
+### Prerequisites
+
+- **Node.js** (version 18 or higher)
+- **npm** or **yarn**
+- **Git**
+- **MongoDB** (for local development)
+
+### 1️⃣ Fork and Clone
+
+1. Fork the repository on GitHub
+
+2. Clone your fork locally:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/copy-paste.space.git
+   cd copy-paste.space
+   ```
+3. Add the original repository as upstream:
+   ```bash
+   git remote add upstream https://github.com/rshdhere/copy-paste.space.git
+   ```
+### 2️⃣ Backend Setup
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+
+2. Install dependencies:
+   ```bash
    npm install
-  ```
-3️⃣ **Set up Environment Variables**
+   ```
 
-  Create a .env file based on .example.env and add required variables.
-
-4️⃣ **Run the Server**
-  ```bash
-  npm run dev
-  ```
-   Make sure you're using a TypeScript-compatible runtime (like Node.js 18+ and ts-node or configured build steps).
+3. Create environment variables:
+   ```bash
+   cp .env.example .env
+   ```
    
+   Configure the following variables in your `.env` file:
+   ```
+   PORT=8080
+   MONGODB_URI=your_mongodb_connection_string
+   NODE_ENV=development
+   ```
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+   The backend will be available at `http://localhost:8080`
+### 3️⃣ Frontend Setup
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+   The frontend will be available at `http://localhost:5173`
+### 4️⃣ Running Both Services
+
+  You can run both services simultaneously by opening two terminal windows:
+
+  **Terminal 1 (Backend):**
+   ```bash
+    cd backend
+    npm run dev
+   ```
+
+  **Terminal 2 (Frontend):**
+   ```bash
+    cd frontend
+    npm run dev
+   ```
 ---
 
 ## Image Sharing Overview V1.5
