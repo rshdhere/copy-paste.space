@@ -43,8 +43,8 @@ async function StartServer(){
     await ConnectedToDB();
     app.listen(PORT, "0.0.0.0", () => {
         console.log(`your server is listening on http://localhost:${PORT}`)
-        // Start the warmup cron job
-        startWarmupCron();
+        // start the warmup cron job, dont need it anymore -- planning to move on digital-ocean
+        // startWarmupCron();
         // Start S3 cleanup cron job
         startS3CleanupCron();
     })
