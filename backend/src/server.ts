@@ -21,12 +21,13 @@ app.use(ipBlockMiddleware);
 // for parsing user data
 app.use(express.json());
 
-// CORS setup for frontend domain access
+// CORS setup to allow access from any origin (including Postman and other tools)
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "*";
 app.use(cors({
-  origin: FRONTEND_ORIGIN === "*" ? true : FRONTEND_ORIGIN,
+  origin: "*", // Allow any origin to access the API
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  exposedHeaders: ["Content-Length", "Content-Type"],
 }));
 
 // Apply general rate limiting to all routes
