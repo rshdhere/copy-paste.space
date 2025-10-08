@@ -1,5 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import express, { Request, Response, NextFunction } from "express";
+import cors from "cors";
 
 // Rate limiter for send endpoint (more restrictive)
 export const sendRateLimiter = rateLimit({
@@ -59,11 +60,18 @@ export const generalRateLimiter = rateLimit({
 // CORS allow requests only from Frontend URL
 const allowedOrigin = [process.env.FRONTEND_ORIGIN_PROD!,process.env.FRONTEND_ORIGIN_DEV!];
 const app = express();
-app.use(async(req,res, next)=>{
-    const origin = req.headers.origin;
-    if (!origin || !allowedOrigin.includes(origin)) {
-        return res.status(403).json({ message: "Access Forbidden" });
+app.use(cors({
+    origin: (origin, callback) => {
+    if (!origin){
+        return callback(new Error("Not allowed by CORS"));
     }
-    next();
-})
+    if (allowedOrigin.includes(origin)){
+        return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  exposedHeaders: ["Content-Length", "Content-Type"],
+}));
 
