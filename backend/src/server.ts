@@ -21,13 +21,41 @@ app.use(ipBlockMiddleware);
 // for parsing user data
 app.use(express.json());
 
-// CORS setup for frontend domain access
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "*";
+// CORS allow requests only from Frontend URL
+const allowedOrigin = [process.env.FRONTEND_ORIGIN_PROD!,process.env.FRONTEND_ORIGIN_DEV!];
 app.use(cors({
-  origin: FRONTEND_ORIGIN === "*" ? true : FRONTEND_ORIGIN,
+  origin: (origin, callback) => {
+    if (!origin) {
+        console.warn("Blocked request: Missing Origin");
+        return callback(null, false);
+    }
+
+    if (allowedOrigin.includes(origin)) {
+      return callback(null, true); // allowed
+    }
+
+    console.warn(`Blocked by CORS: ${origin}`);
+    callback(null, false);
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  exposedHeaders: ["Content-Length", "Content-Type"],
 }));
+
+// Handle blocked origins safely
+app.use((req, res, next) => {
+  // Only respond 403 if CORS blocked the origin
+  const origin = req.headers.origin;
+  if (origin && !allowedOrigin.includes(origin)) {
+    return res.status(403).json({ error: "Not allowed by CORS" });
+  }
+  next();
+});
+
+app.get("/", (req, res) => {
+  res.json({ message: "Hello from backend!" });
+});
+
 
 // Apply general rate limiting to all routes
 app.use(generalRateLimiter);
