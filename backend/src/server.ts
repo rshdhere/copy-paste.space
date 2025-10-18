@@ -26,18 +26,32 @@ const allowedOrigin = [process.env.FRONTEND_ORIGIN_PROD!,process.env.FRONTEND_OR
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) {
-      return callback(new Error("Not allowed by CORS: Missing Origin"));
+        console.warn("Blocked request: Missing Origin");
+        return callback(null, false);
     }
 
     if (allowedOrigin.includes(origin)) {
       return callback(null, true); // allowed
     }
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
+
+    console.warn(`Blocked by CORS: ${origin}`);
+    callback(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   exposedHeaders: ["Content-Length", "Content-Type"],
 }));
+
+// Handle blocked origins safely
+app.use((req, res, next) => {
+  // Only respond 403 if CORS blocked the origin
+  const origin = req.headers.origin;
+  if (origin && !allowedOrigin.includes(origin)) {
+    return res.status(403).json({ error: "Not allowed by CORS" });
+  }
+  next();
+});
+
 app.get("/", (req, res) => {
   res.json({ message: "Hello from backend!" });
 });
