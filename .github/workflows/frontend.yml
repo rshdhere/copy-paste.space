@@ -1,4 +1,4 @@
-name: Deploy Frontend to AWS S3 + CloudFront
+name: Frontend Deployment to AWS S3 & CloudFront(CDN)
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to AWS S3 and CloudFront
+    name: frontend
     runs-on: ubuntu-latest
     
     steps:
