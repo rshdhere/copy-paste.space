@@ -3,7 +3,6 @@ import cors from "cors";
 import { ConnectedToDB } from "./database/database";
 import senderRouter from "./routes/sender";
 import receiverRouter from "./routes/receiver";
-import { startWarmupCron } from "./warmup-cron";
 import { generalRateLimiter } from "./middleware/rateLimit";
 import { ipBlockMiddleware } from "./middleware/ipBlock";
 import imagesRouter from "./routes/images";
@@ -43,8 +42,6 @@ async function StartServer(){
     await ConnectedToDB();
     app.listen(PORT, "0.0.0.0", () => {
         console.log(`your server is listening on http://localhost:${PORT}`)
-        // start the warmup cron job, dont need it anymore -- planning to move on digital-ocean
-        // startWarmupCron();
         // Start S3 cleanup cron job
         startS3CleanupCron();
     })
