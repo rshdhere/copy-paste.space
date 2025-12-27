@@ -1,0 +1,124 @@
+name: Deploy Backend to VPS
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Build TypeScript
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Create deployment package
+        run: |
+          cd backend
+          tar -czf ../backend-deploy.tar.gz \
+            dist/ \
+            package.json \
+            package-lock.json \
+            node_modules/
+
+      - name: Deploy to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          source: "backend-deploy.tar.gz"
+          target: "/tmp"
+
+      - name: Extract and restart service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            # Set deployment directory
+            DEPLOY_DIR="${{ secrets.VPS_DEPLOY_PATH || '/root/copy-paste.space/backend' }}"
+            
+            # Navigate to deployment directory
+            cd "$DEPLOY_DIR"
+            
+            # Backup current dist and node_modules if they exist
+            if [ -d "dist" ] || [ -d "node_modules" ]; then
+              BACKUP_DIR="backup-$(date +%Y%m%d-%H%M%S)"
+              mkdir -p "../backups/$BACKUP_DIR"
+              [ -d "dist" ] && mv dist "../backups/$BACKUP_DIR/"
+              [ -d "node_modules" ] && mv node_modules "../backups/$BACKUP_DIR/"
+            fi
+            
+            # Extract new deployment
+            tar -xzf /tmp/backend-deploy.tar.gz -C "$DEPLOY_DIR"
+            
+            # Ensure .env file exists (copy from backup if needed)
+            if [ ! -f ".env" ] && [ -d "../backups" ]; then
+              LATEST_BACKUP=$(ls -td ../backups/backup-* 2>/dev/null | head -1)
+              if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP/.env" ]; then
+                cp "$LATEST_BACKUP/.env" .env
+              fi
+            fi
+            
+            # Install production dependencies
+            npm ci --production || npm install --production
+            
+            # Restart PM2 service
+            if pm2 describe cp-backend-production > /dev/null 2>&1; then
+              # Process exists, reload it (zero-downtime restart)
+              pm2 reload cp-backend-production --update-env
+            else
+              # Process doesn't exist, start it
+              pm2 start dist/server.js \
+                --name cp-backend-production \
+                --cwd "$DEPLOY_DIR" \
+                --update-env
+              pm2 save
+            fi
+            
+            # Cleanup old backups (keep last 5)
+            if [ -d "../backups" ]; then
+              ls -td ../backups/backup-* 2>/dev/null | tail -n +6 | xargs rm -rf
+            fi
+            
+            # Cleanup temp file
+            rm -f /tmp/backend-deploy.tar.gz
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            sleep 5
+            # Check PM2 process status
+            pm2 status cp-backend-production
+            pm2 info cp-backend-production
+
