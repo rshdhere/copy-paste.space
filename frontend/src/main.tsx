@@ -12,4 +12,3 @@ createRoot(document.getElementById('root')!).render(
     </Provider>
   </StrictMode>,
 )
-// Updated to trigger GitHub status
