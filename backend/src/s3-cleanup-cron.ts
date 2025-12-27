@@ -14,7 +14,7 @@ async function deleteExpiredTempObjects(): Promise<void> {
   }
 
   const now = Date.now();
-  const expirationMs = 5 * 60 * 1000; // 5 minutes
+  const expirationMs = 5 * 60 * 1000; // 5 minutes of time
 
   try {
     let continuationToken: string | undefined = undefined;

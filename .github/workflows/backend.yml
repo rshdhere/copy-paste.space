@@ -60,52 +60,48 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT || 22 }}
           script: |
+            # ---- Load NVM (CRITICAL) ----
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
             # Set deployment directory
             DEPLOY_DIR="${{ secrets.VPS_DEPLOY_PATH || '/root/copy-paste.space/backend' }}"
-            
-            # Navigate to deployment directory
             cd "$DEPLOY_DIR"
-            
-            # Backup current dist and node_modules if they exist
+
+            # Backup current dist and node_modules
             if [ -d "dist" ] || [ -d "node_modules" ]; then
               BACKUP_DIR="backup-$(date +%Y%m%d-%H%M%S)"
               mkdir -p "../backups/$BACKUP_DIR"
               [ -d "dist" ] && mv dist "../backups/$BACKUP_DIR/"
               [ -d "node_modules" ] && mv node_modules "../backups/$BACKUP_DIR/"
             fi
-            
+
             # Extract new deployment
             tar -xzf /tmp/backend-deploy.tar.gz -C "$DEPLOY_DIR"
-            
-            # Ensure .env file exists (copy from backup if needed)
+
+            # Restore .env if missing
             if [ ! -f ".env" ] && [ -d "../backups" ]; then
               LATEST_BACKUP=$(ls -td ../backups/backup-* 2>/dev/null | head -1)
-              if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP/.env" ]; then
-                cp "$LATEST_BACKUP/.env" .env
-              fi
+              [ -f "$LATEST_BACKUP/.env" ] && cp "$LATEST_BACKUP/.env" .env
             fi
-            
-            # Install production dependencies
+
+            # Install production deps (safe even if node_modules exists)
             npm ci --production || npm install --production
-            
-            # Restart PM2 service
-            if /usr/local/bin/pm2 describe cp-backend-production > /dev/null 2>&1; then
-              # Process exists, reload it (zero-downtime restart)
-              /usr/local/bin/pm2 reload cp-backend-production --update-env
+
+            # Restart PM2
+            if pm2 describe cp-backend-production > /dev/null 2>&1; then
+              pm2 reload cp-backend-production --update-env
             else
-              # Process doesn't exist, start it
-              /usr/local/bin/pm2 start dist/server.js \
+              pm2 start dist/server.js \
                 --name cp-backend-production \
                 --cwd "$DEPLOY_DIR" \
                 --update-env
-              /usr/local/bin/pm2 save
+              pm2 save
             fi
-            
-            # Cleanup old backups (keep last 5)
-            if [ -d "../backups" ]; then
-              ls -td ../backups/backup-* 2>/dev/null | tail -n +6 | xargs rm -rf
-            fi
-            
+
+            # Cleanup backups (keep last 5)
+            ls -td ../backups/backup-* 2>/dev/null | tail -n +6 | xargs rm -rf || true
+
             # Cleanup temp file
             rm -f /tmp/backend-deploy.tar.gz
 
@@ -117,8 +113,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT || 22 }}
           script: |
-            sleep 5
-            # Check PM2 process status
-            /usr/local/bin/pm2 status cp-backend-production
-            /usr/local/bin/pm2 info cp-backend-production
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
+            sleep 5
+            pm2 status cp-backend-production
+            pm2 info cp-backend-production
