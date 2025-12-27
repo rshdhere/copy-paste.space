@@ -89,16 +89,16 @@ jobs:
             npm ci --production || npm install --production
             
             # Restart PM2 service
-            if pm2 describe cp-backend-production > /dev/null 2>&1; then
+            if /usr/local/bin/pm2 describe cp-backend-production > /dev/null 2>&1; then
               # Process exists, reload it (zero-downtime restart)
-              pm2 reload cp-backend-production --update-env
+              /usr/local/bin/pm2 reload cp-backend-production --update-env
             else
               # Process doesn't exist, start it
-              pm2 start dist/server.js \
+              /usr/local/bin/pm2 start dist/server.js \
                 --name cp-backend-production \
                 --cwd "$DEPLOY_DIR" \
                 --update-env
-              pm2 save
+              /usr/local/bin/pm2 save
             fi
             
             # Cleanup old backups (keep last 5)
@@ -119,6 +119,6 @@ jobs:
           script: |
             sleep 5
             # Check PM2 process status
-            pm2 status cp-backend-production
-            pm2 info cp-backend-production
+            /usr/local/bin/pm2 status cp-backend-production
+            /usr/local/bin/pm2 info cp-backend-production
 

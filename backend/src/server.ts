@@ -10,7 +10,6 @@ import { startS3CleanupCron } from "./s3-cleanup-cron";
 
 const app = express();
 
-// Trust proxy for proper IP handling behind reverse proxy (Vercel + Railway)
 // Trust only specific proxy IPs or use 'loopback' for local development
 app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : 'loopback');
 
