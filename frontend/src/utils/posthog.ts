@@ -36,7 +36,7 @@ export const initializePostHog = (): void => {
     setTimeout(() => {
         try {
             const anonymousId = getAnonymousId();
-            console.log('Initializing PostHog with API key:', apiKey.substring(0, 10) + '...');
+            // console.log('Initializing PostHog with API key:', apiKey.substring(0, 10) + '...');
             console.log('PostHog host (secure reverse proxy):', host);
 
             posthog.init(apiKey, {
