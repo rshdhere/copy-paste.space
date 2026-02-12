@@ -76,7 +76,7 @@ jobs:
 
       - name: Deployment summary
         run: |
-          echo "✅ Frontend deployed successfully!"
+          echo "Frontend deployed successfully!"
           echo "S3 Bucket: ${{ secrets.AWS_S3_BUCKET_NAME }}"
           echo "CloudFront Distribution: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }}"
 
